@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="pl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STRATCOM // Symulator Gotowości Obronnej DEFCON</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Share Tech Mono, JetBrains Mono & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        display: ['Share Tech Mono', 'monospace'],
+                    },
+                    colors: {
+                        cmd: {
+                            bg: '#05080f',
+                            panel: '#0a101d',
+                            border: '#1b2842',
+                            text: '#cbd5e1'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --defcon-color: #3b82f6;
+            --defcon-glow: rgba(59, 130, 246, 0.35);
+            --defcon-bg-tint: rgba(59, 130, 246, 0.06);
+        }
+
+        body {
+            background-color: #05080f;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 0%, var(--defcon-bg-tint), transparent 70%),
+                linear-gradient(rgba(15, 23, 42, 0.35) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(15, 23, 42, 0.35) 1px, transparent 1px);
+            background-size: 100% 100%, 28px 28px, 28px 28px;
+        }
+
+        /* Subtelny efekt linii skanowania CRT */
+        .scanlines::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%);
+            background-size: 100% 4px;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0.35;
+        }
+
+        .cmd-panel {
+            background: rgba(10, 16, 29, 0.88);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(51, 65, 85, 0.55);
+            box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+            transition: border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .cmd-panel-active {
+            border-color: var(--defcon-color);
+            box-shadow: 0 0 22px -4px var(--defcon-glow), inset 0 0 15px -8px var(--defcon-glow);
+        }
+
+        /* Stylizacja suwaków */
+        input[type=range].tactical-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input[type=range].tactical-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 3px;
+            background: var(--defcon-color);
+            cursor: pointer;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 10px var(--defcon-color);
+            transition: transform 0.15s ease, background-color 0.3s ease;
+        }
+
+        input[type=range].tactical-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        /* Pasek przewijania dla dziennika logów */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #070b14;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        @keyframes pulse-fast {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.25; }
+        }
+
+        .animate-defcon1 {
+            animation: pulse-fast 0.9s infinite ease-in-out;
+        }
+
+        @keyframes ticker {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .eam-ticker {
+            display: flex;
+            width: max-content;
+            animation: ticker 38s linear infinite;
+        }
+
+        .defcon-badge-glow {
+            text-shadow: 0 0 18px var(--defcon-color);
+        }
+    </style>
+</head>
+<body class="scanlines min-h-screen flex flex-col font-sans selection:bg-blue-500 selection:text-white">
+
+    <!-- PASEK OSTRZEGAWCZY EAM / NAGŁÓWEK SZTABU -->
+    <header class="border-b border-slate-800/80 bg-[#070b14]/95 sticky top-0 z-50 backdrop-blur-md">
+        <!-- Pasek szyfrowanych depesz EAM -->
+        <div class="bg-slate-950 border-b border-slate-800/80 py-1 px-3 overflow-hidden flex items-center text-[11px] font-mono text-slate-400">
+            <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 font-bold mr-3 shrink-0 flex items-center gap-1.5">
+                <span id="uplink-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                SATCOM EAM
+            </span>
+            <div class="overflow-hidden whitespace-nowrap w-full">
+                <div class="eam-ticker space-x-12" id="eam-ticker-text">
+                    <span>// SKYKING SKYKING DO NOT ANSWER // SZYFR: ZULU-94-ALPHA-771 // STATUS SATELITÓW DSP/SBIRS: NOMINALNY //</span>
+                    <span>// NORAD / USSTRATCOM POŁĄCZENIE AKTYWNE // SYSTEM WCZESNEGO OSTRZEGANIA BMEWS: ONLINE //</span>
+                    <span>// KONTROLA PRZESTRZENI POWIETRZNEJ NATO-INTEGRATED: SYNCHRONIZACJA 99.98% //</span>
+                    <span>// SKYKING SKYKING DO NOT ANSWER // SZYFR: ZULU-94-ALPHA-771 // STATUS SATELITÓW DSP/SBIRS: NOMINALNY //</span>
+                    <span>// NORAD / USSTRATCOM POŁĄCZENIE AKTYWNE // SYSTEM WCZESNEGO OSTRZEGANIA BMEWS: ONLINE //</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Główny pasek nawigacyjny -->
+        <div class="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div id="header-shield" class="w-10 h-10 rounded-lg flex items-center justify-center border border-blue-500/50 bg-blue-500/10 text-blue-400 transition-colors duration-300">
+                    <i data-lucide="shield-alert" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-display text-lg md:text-xl tracking-wider font-bold text-white uppercase">
+                            CENTRUM DOWODZENIA STRATEGICZNEGO <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">SYS-DEFCON v4.8</span>
+                        </h1>
+                    </div>
+                    <p class="text-xs text-slate-400 font-mono">ZINTEGROWANY SYMULATOR GOTOWOŚCI OBRONNEJ I ANALIZY ZAGROŻEŃ GLOBALNYCH</p>
+                </div>
+            </div>
+
+            <!-- Zegar ZULU, Tryb i Kontrola Audio -->
+            <div class="flex flex-wrap items-center gap-2 sm:gap-4">
+                <!-- Zegar UTC / ZULU -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-lg px-3 py-1.5 font-mono text-right">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest">CZAS OPERACYJNY ZULU (UTC)</div>
+                    <div id="zulu-clock" class="text-sm sm:text-base font-bold text-white tracking-wider">00:00:00.0</div>
+                </div>
+
+                <!-- Ukryty input do wczytania 9 plików MP3 użytkownika -->
+                <input type="file" id="custom-mp3-input" multiple accept="audio/*,.mp3" class="hidden" onchange="handleCustomAudioFiles(this.files)">
+
+                <!-- Kontrola Audio i Wgrywanie Plików MP3 -->
+                <div class="flex flex-wrap items-center gap-1.5 bg-slate-900/90 border border-slate-800 rounded-lg p-1.5">
+                    <button onclick="document.getElementById('custom-mp3-input').click()" title="Wczytaj pliki defcon alert.mp3 i announcment.mp3 z urządzenia" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-mono font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30 hover:bg-blue-500/25 transition">
+                        <i data-lucide="folder-up" class="w-4 h-4"></i>
+                        <span id="mp3-loaded-badge">WGRAJ MP3 (0/9)</span>
+                    </button>
+                    <button id="btn-audio-toggle" onclick="toggleAudio()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition">
+                        <i data-lucide="volume-2" id="audio-icon" class="w-4 h-4"></i>
+                        <span id="audio-label">AUDIO: WŁ</span>
+                    </button>
+                    <button onclick="triggerTestSiren()" title="Odtwórz sekwencję alarm + ogłoszenie dla aktualnego poziomu" class="px-2.5 py-1.5 rounded-md text-xs font-mono text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-1">
+                        <i data-lucide="bell-ring" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">TEST SEKWENCJI</span>
+                    </button>
+                    <button id="btn-stop-audio" onclick="stopActiveCustomAudio()" title="Zatrzymaj trwający komunikat dźwiękowy" class="hidden px-2 py-1.5 rounded-md text-xs font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 transition items-center gap-1">
+                        <i data-lucide="square" class="w-3.5 h-3.5"></i>
+                        <span>STOP</span>
+                    </button>
+                </div>
+
+                <!-- Reset Systemu -->
+                <button onclick="resetToPeace()" class="px-3 py-2 rounded-lg text-xs font-mono font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span>RESET (POKÓJ)</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- GŁÓWNA SIATKA CENTRUM DOWODZENIA -->
+    <main class="max-w-[1600px] w-full mx-auto px-4 py-5 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+        <!-- LEWA KOLUMNA (4/12): STATUS DEFCON + SYSTEM AUDIO MP3 + GOTOWOŚĆ SIŁ ZBROJNYCH -->
+        <section class="lg:col-span-4 flex flex-col gap-5">
+            
+            <!-- KARTA 1: GŁÓWNY WSKAŹNIK DEFCON -->
+            <div id="defcon-main-card" class="cmd-panel cmd-panel-active rounded-xl p-5 relative overflow-hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full" id="status-dot" style="background-color: var(--defcon-color);"></span>
+                        <h2 class="font-mono text-xs uppercase tracking-widest text-slate-300 font-bold">AKTUALNY STAN GOTOWOŚCI BOJOWEJ</h2>
+                    </div>
+                    <!-- Przełącznik AUTO / RĘCZNY -->
+                    <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[11px] font-mono">
+                        <button id="mode-auto-btn" onclick="setControlMode('AUTO')" class="px-2.5 py-1 rounded-md bg-blue-600 text-white font-bold transition">AUTO</button>
+                        <button id="mode-manual-btn" onclick="setControlMode('MANUAL')" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition">RĘCZNY</button>
+                    </div>
+                </div>
+
+                <!-- Tablica 5 poziomów DEFCON (w stylu tablicy NORAD) -->
+                <div class="grid grid-cols-5 gap-2 mb-5">
+                    <button onclick="manualSelectDefcon(1)" id="pill-defcon-1" class="flex flex-col items-center justify-center py-2.5 px-1 rounded-lg border border-slate-800 bg-slate-900/60 transition cursor-pointer hover:border-slate-600">
+                        <span class="text-[10px] font-mono text-slate-400">POZIOM</span>
+                        <span class="font-display text-2xl font-bold text-slate-500">1</span>
+                    </button>
+                    <button onclick="manualSelectDefcon(2)" id="pill-defcon-2" class="flex flex-col items-center justify-center py-2.5 px-1 rounded-lg border border-slate-800 bg-slate-900/60 transition cursor-pointer hover:border-slate-600">
+                        <span class="text-[10px] font-mono text-slate-400">POZIOM</span>
+                        <span class="font-display text-2xl font-bold text-slate-500">2</span>
+                    </button>
+                    <button onclick="manualSelectDefcon(3)" id="pill-defcon-3" class="flex flex-col items-center justify-center py-2.5 px-1 rounded-lg border border-slate-800 bg-slate-900/60 transition cursor-pointer hover:border-slate-600">
+                        <span class="text-[10px] font-mono text-slate-400">POZIOM</span>
+                        <span class="font-display text-2xl font-bold text-slate-500">3</span>
+                    </button>
+                    <button onclick="manualSelectDefcon(4)" id="pill-defcon-4" class="flex flex-col items-center justify-center py-2.5 px-1 rounded-lg border border-slate-800 bg-slate-900/60 transition cursor-pointer hover:border-slate-600">
+                        <span class="text-[10px] font-mono text-slate-400">POZIOM</span>
+                        <span class="font-display text-2xl font-bold text-slate-500">4</span>
+                    </button>
+                    <button onclick="manualSelectDefcon(5)" id="pill-defcon-5" class="flex flex-col items-center justify-center py-2.5 px-1 rounded-lg border border-slate-800 bg-slate-900/60 transition cursor-pointer hover:border-slate-600">
+                        <span class="text-[10px] font-mono text-slate-400">POZIOM</span>
+                        <span class="font-display text-2xl font-bold text-slate-500">5</span>
+                    </button>
+                </div>
+
+                <!-- Duży wyświetlacz aktywnego poziomu -->
+                <div class="bg-slate-950/90 border border-slate-800/90 rounded-xl p-5 text-center relative overflow-hidden mb-4">
+                    <div class="text-xs font-mono uppercase tracking-[0.25em] text-slate-400 mb-1">KRYPTONIM OPERACYJNY: <span id="defcon-codename" class="text-white font-bold">FADE OUT</span></div>
+                    <div id="defcon-big-title" class="font-display text-5xl sm:text-6xl font-bold tracking-wider my-1 defcon-badge-glow transition-colors duration-300" style="color: var(--defcon-color);">
+                        DEFCON 5
+                    </div>
+                    <div id="defcon-subtitle" class="text-sm font-semibold uppercase tracking-wide text-blue-400 mt-1">
+                        NORMALNA GOTOWOŚĆ POKOJOWA (NIEBIESKI)
+                    </div>
+                </div>
+
+                <!-- Opis aktualnego poziomu i procedury -->
+                <div class="space-y-3">
+                    <div class="bg-slate-900/60 border border-slate-800/80 rounded-lg p-3.5">
+                        <div class="text-[11px] font-mono uppercase text-slate-400 mb-1 flex items-center gap-1.5">
+                            <i data-lucide="file-terminal" class="w-3.5 h-3.5"></i>
+                            CHARAKTERYSTYKA SYTUACJI I DYREKTYWY:
+                        </div>
+                        <p id="defcon-description" class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                            Brak bezpośrednich zagrożeń militarnych o charakterze strategicznym. Jednostki wojskowe funkcjonują w trybie pokojowym, prowadząc rutynowe patrole i szkolenia.
+                        </p>
+                    </div>
+
+                    <!-- Lista procedur wojskowych -->
+                    <div class="bg-slate-900/60 border border-slate-800/80 rounded-lg p-3.5">
+                        <div class="text-[11px] font-mono uppercase text-slate-400 mb-2 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">
+                                <i data-lucide="list-checks" class="w-3.5 h-3.5"></i>
+                                AKTYWNE PROCEDURY SZTABOWE:
+                            </span>
+                            <span id="procedure-count" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">STANDARD</span>
+                        </div>
+                        <ul id="defcon-procedures" class="space-y-1.5 text-xs font-mono text-slate-300">
+                            <!-- Wypełniane dynamicznie przez JS -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KARTA NOWA: SYSTEM NAGŁOŚNIENIA SZTABOWEGO PA (OBSŁUGA PLIKÓW MP3 UŻYTKOWNIKA) -->
+            <div class="cmd-panel rounded-xl p-5">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <h3 class="font-mono text-xs uppercase tracking-widest text-slate-200 font-bold flex items-center gap-2">
+                        <i data-lucide="speaker" class="w-4 h-4 text-sky-400"></i>
+                        BANK AUDIO DEFCON (ALARM + OGŁOSZENIE)
+                    </h3>
+                    <button onclick="document.getElementById('custom-mp3-input').click()" class="px-2.5 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 text-[11px] font-mono font-semibold transition flex items-center gap-1">
+                        <i data-lucide="upload" class="w-3.5 h-3.5"></i> WYBIERZ PLIKI MP3 (9)
+                    </button>
+                </div>
+
+                <!-- Monitor aktualnie odtwarzanej sekwencji -->
+                <div id="audio-sequence-monitor" class="bg-slate-950/95 border border-slate-800 rounded-lg p-3 mb-3 font-mono text-xs">
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                        <span>STATUS SEKWENCERA AUDIO:</span>
+                        <span id="audio-seq-stage" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-bold">GOTOWY (CZUWANIE)</span>
+                    </div>
+                    <div id="audio-now-playing" class="text-slate-300 font-semibold truncate">
+                        Oczekiwanie na zmianę poziomu DEFCON...
+                    </div>
+                    <!-- Regulacja głośności -->
+                    <div class="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center gap-3">
+                        <span class="text-[10px] text-slate-400 shrink-0">GŁOŚNOŚĆ MP3:</span>
+                        <input id="audio-volume-slider" type="range" min="0" max="100" value="90" class="tactical-slider" oninput="updateCustomAudioVolume(this.value)">
+                        <span id="audio-volume-label" class="text-[11px] text-slate-300 font-bold w-9 text-right">90%</span>
+                    </div>
+                </div>
+
+                <!-- Macierz statusu 9 plików z załącznika użytkownika -->
+                <div class="text-[10px] font-mono text-slate-400 mb-2 leading-relaxed">
+                    System automatycznie szuka plików w folderze lokalnym lub używa plików wgranych przyciskiem powyżej. Dla poziomów <strong>1–4</strong> po alarmie wybrzmiewa ogłoszenie, natomiast <strong>DEFCON 5</strong> posiada wyłącznie sygnał alarmu.
+                </div>
+
+                <div id="audio-files-matrix" class="space-y-1.5 font-mono text-[11px]">
+                    <!-- Wypełniane dynamicznie przez JS -->
+                </div>
+            </div>
+
+            <!-- KARTA 2: STATUS KOMPONENTÓW SIŁ ZBROJNYCH (TRIADA NUKLEARNA I OBRONA) -->
+            <div class="cmd-panel rounded-xl p-5 flex-1 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-mono text-xs uppercase tracking-widest text-slate-300 font-bold flex items-center gap-2">
+                            <i data-lucide="cpu" class="w-4 h-4 text-slate-400"></i>
+                            STATUS RODZAJÓW SIŁ ZBROJNYCH
+                        </h3>
+                        <span class="text-[11px] font-mono text-slate-400">TELEMETRIA LIVE</span>
+                    </div>
+
+                    <div id="forces-status-list" class="space-y-2.5">
+                        <!-- Wypełniane dynamicznie przez JS -->
+                    </div>
+                </div>
+
+                <!-- Dolny pasek autoryzacji SIOP -->
+                <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
+                    <span class="text-slate-400">ZABEZPIECZENIE PAL (PERMISSIVE ACTION LINK):</span>
+                    <span id="pal-status-badge" class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold">ZABLOKOWANE</span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ŚRODKOWA KOLUMNA (5/12): WIZUALIZACJA MAPY ŚWIATA / RADARU + GENERATOR SCENARIUSZY -->
+        <section class="lg:col-span-5 flex flex-col gap-5">
+
+            <!-- KARTA 3: WIZUALIZACJA TAKTYCZNA (MAPA ŚWIATA / RADAR BMEWS) -->
+            <div class="cmd-panel rounded-xl p-4 flex flex-col">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        <h2 class="font-mono text-xs uppercase tracking-widest text-slate-200 font-bold">WIZUALIZACJA GLOBALNA // SIATKA TAKTYCZNA</h2>
+                    </div>
+
+                    <!-- Przełączniki widoku Canvas -->
+                    <div class="flex items-center gap-1.5 font-mono text-[11px]">
+                        <button id="view-map-btn" onclick="setRadarMode('MAP')" class="px-2.5 py-1 rounded bg-slate-800 text-white border border-slate-600 transition flex items-center gap-1">
+                            <i data-lucide="globe" class="w-3.5 h-3.5"></i> MAPA ŚWIATA
+                        </button>
+                        <button id="view-polar-btn" onclick="setRadarMode('POLAR')" class="px-2.5 py-1 rounded bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-1">
+                            <i data-lucide="radar" class="w-3.5 h-3.5"></i> RADAR BMEWS
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Kontener Canvas -->
+                <div class="relative w-full aspect-[16/10] bg-[#04070d] rounded-lg border border-slate-800 overflow-hidden shadow-inner">
+                    <canvas id="tactical-canvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+                    <!-- Nakładki informacyjne HUD na mapie -->
+                    <div class="absolute top-2.5 left-2.5 pointer-events-none font-mono text-[10px] space-y-1 bg-slate-950/80 px-2.5 py-1.5 rounded border border-slate-800/80">
+                        <div class="text-slate-400">OBIEKTY ŚLEDZONE: <span id="hud-tracked-count" class="text-white font-bold">14</span></div>
+                        <div class="text-slate-400">PUNKTÓW ZAPALNYCH: <span id="hud-hotspots-count" class="text-amber-400 font-bold">2</span></div>
+                        <div class="text-slate-400">TRAJEKTORIE BALISTYCZNE: <span id="hud-missiles-count" class="text-rose-400 font-bold">0</span></div>
+                    </div>
+
+                    <div class="absolute bottom-2.5 left-2.5 pointer-events-none font-mono text-[10px] bg-slate-950/80 px-2 py-1 rounded border border-slate-800/80 text-slate-400">
+                        WSPÓŁRZĘDNE KURSORA: <span id="hud-coords" class="text-slate-200">52.23°N, 21.01°E</span>
+                    </div>
+
+                    <div class="absolute bottom-2.5 right-2.5 flex gap-1.5">
+                        <button onclick="spawnReconPulse()" class="px-2 py-1 rounded bg-slate-900/90 hover:bg-slate-800 text-[10px] font-mono text-sky-400 border border-sky-500/30 transition flex items-center gap-1">
+                            <i data-lucide="scan-line" class="w-3 h-3"></i> SKAN SATELITARNY
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Legenda mapy -->
+                <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400 px-1">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span> Baza / Dowództwo</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> Punkt zapalny</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Zagrożenie / ICBM</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span> Satelita / Patrol</span>
+                    </div>
+                    <span class="text-[10px] text-slate-500">Kliknij na mapę, aby wysłać sondę zwiadowczą</span>
+                </div>
+            </div>
+
+            <!-- KARTA 4: GENERATOR SCENARIUSZY KRYZYSOWYCH -->
+            <div class="cmd-panel rounded-xl p-5 flex-1 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="font-mono text-xs uppercase tracking-widest text-slate-200 font-bold flex items-center gap-2">
+                            <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+                            GENERATOR SCENARIUSZY KRYZYSOWYCH (SYMULACJA ZDARZEŃ)
+                        </h2>
+                        <button onclick="triggerRandomScenario()" class="px-2.5 py-1 rounded bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 text-[11px] font-mono font-semibold transition flex items-center gap-1">
+                            <i data-lucide="shuffle" class="w-3.5 h-3.5"></i> LOSOWY INCYDENT
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3.5">
+                        Wybierz scenariusz operacyjny, aby zasymulować nagłe zdarzenie geopolityczne, zaktualizować parametry ryzyka i zaobserwować reakcję łańcuchową systemu DEFCON.
+                    </p>
+
+                    <!-- Siatka przycisków scenariuszy -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <button onclick="runScenario('AIRSPACE')" class="text-left p-3 rounded-lg bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-amber-500/50 transition group">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-mono text-xs font-bold text-amber-400 group-hover:text-amber-300 flex items-center gap-1.5">
+                                    <i data-lucide="plane" class="w-3.5 h-3.5"></i> NARUSZENIE PRZESTRZENI
+                                </span>
+                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">+RYZYKO</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 leading-snug">Wykrycie formacji bombowców strategicznych w strefie ADIZ nad Arktyką.</p>
+                        </button>
+
+                        <button onclick="runScenario('CYBERATTACK')" class="text-left p-3 rounded-lg bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-orange-500/50 transition group">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-mono text-xs font-bold text-orange-400 group-hover:text-orange-300 flex items-center gap-1.5">
+                                    <i data-lucide="terminal" class="w-3.5 h-3.5"></i> CYBERATAK NA INFRASTRUKTURĘ
+                                </span>
+                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400">KRYTYCZNY</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 leading-snug">Zmasowany atak typu Zero-Day na sieci energetyczne i węzły łączności wojskowej.</p>
+                        </button>
+
+                        <button onclick="runScenario('SAT_BLIND')" class="text-left p-3 rounded-lg bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-rose-500/50 transition group">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-mono text-xs font-bold text-rose-400 group-hover:text-rose-300 flex items-center gap-1.5">
+                                    <i data-lucide="satellite" class="w-3.5 h-3.5"></i> OŚLEPIENIE SATELITY SBIRS
+                                </span>
+                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400">ESKALACJA</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 leading-snug">Utrata telemetrii z satelity wczesnego ostrzegania na orbicie geostacjonarnej.</p>
+                        </button>
+
+                        <button onclick="runScenario('BALLISTIC')" class="text-left p-3 rounded-lg bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-red-500/60 transition group">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-mono text-xs font-bold text-red-400 group-hover:text-red-300 flex items-center gap-1.5">
+                                    <i data-lucide="flame" class="w-3.5 h-3.5"></i> START OBIEKTU BALISTYCZNEGO
+                                </span>
+                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 font-bold">ALARM SIOP</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 leading-snug">Sygnatura cieplna startu wielogłowicowego pocisku ICBM/SLBM. Pełna mobilizacja.</p>
+                        </button>
+
+                        <button onclick="runScenario('SUBMARINE')" class="text-left p-3 rounded-lg bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-yellow-500/50 transition group">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-mono text-xs font-bold text-yellow-400 group-hover:text-yellow-300 flex items-center gap-1.5">
+                                    <i data-lucide="anchor" class="w-3.5 h-3.5"></i> AKTYWNOŚĆ OKRĘTÓW SSBN
+                                </span>
+                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400">WYWIAD</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 leading-snug">Nagłe wyjście w morze strategicznych okrętów podwodnych z baz północnych.</p>
+                        </button>
+
+                        <button onclick="runScenario('PEACE_SUMMIT')" class="text-left p-3 rounded-lg bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-emerald-500/50 transition group">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-mono text-xs font-bold text-emerald-400 group-hover:text-emerald-300 flex items-center gap-1.5">
+                                    <i data-lucide="handshake" class="w-3.5 h-3.5"></i> SZCZYT POKOJOWY /GORĄCA LINIA
+                                </span>
+                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">DEESKALACJA</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 leading-snug">Bezpośrednie porozumienie dyplomatyczne i wycofanie jednostek z rejonu sporu.</p>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- PRAWA KOLUMNA (3/12): SUWAKI CZYNNIKÓW RYZYKA + DZIENNIK ZDARZEŃ -->
+        <section class="lg:col-span-3 flex flex-col gap-5">
+
+            <!-- KARTA 5: SUWAKI CZYNNIKÓW RYZYKA GEOPOLITYCZNEGO -->
+            <div class="cmd-panel rounded-xl p-5">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="font-mono text-xs uppercase tracking-widest text-slate-200 font-bold flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-4 h-4 text-sky-400"></i>
+                        WEKTORY RYZYKA GEOPOLITYCZNEGO
+                    </h2>
+                </div>
+
+                <!-- Pasek Indeksu Napięcia Globalnego -->
+                <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-3 mb-4">
+                    <div class="flex items-center justify-between text-xs font-mono mb-1.5">
+                        <span class="text-slate-400">INDEKS NAPIĘCIA GLOBALNEGO:</span>
+                        <span id="tension-index-value" class="text-base font-bold text-blue-400">8.4%</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                        <div id="tension-progress-bar" class="h-full transition-all duration-300 rounded-full" style="width: 8.4%; background-color: var(--defcon-color);"></div>
+                    </div>
+                    <div class="flex justify-between text-[9px] font-mono text-slate-500 mt-1">
+                        <span>0% (DEF 5)</span>
+                        <span>25% (DEF 4)</span>
+                        <span>50% (DEF 3)</span>
+                        <span>72% (DEF 2)</span>
+                        <span>90%+ (DEF 1)</span>
+                    </div>
+                </div>
+
+                <!-- 5 Suwaków Czynników Ryzyka -->
+                <div class="space-y-3.5">
+                    <!-- Suwak 1: Aktywność cybernetyczna -->
+                    <div>
+                        <div class="flex justify-between text-xs font-mono mb-1">
+                            <label for="slider-cyber" class="text-slate-300 flex items-center gap-1.5">
+                                <i data-lucide="network" class="w-3.5 h-3.5 text-sky-400"></i> Aktywność cybernetyczna
+                            </label>
+                            <span id="val-cyber" class="font-bold text-slate-200">10%</span>
+                        </div>
+                        <input id="slider-cyber" type="range" min="0" max="100" value="10" class="tactical-slider" oninput="onSliderChange()">
+                    </div>
+
+                    <!-- Suwak 2: Ruchy wojsk konwencjonalnych -->
+                    <div>
+                        <div class="flex justify-between text-xs font-mono mb-1">
+                            <label for="slider-troops" class="text-slate-300 flex items-center gap-1.5">
+                                <i data-lucide="shield" class="w-3.5 h-3.5 text-emerald-400"></i> Ruchy wojsk lądowych i floty
+                            </label>
+                            <span id="val-troops" class="font-bold text-slate-200">8%</span>
+                        </div>
+                        <input id="slider-troops" type="range" min="0" max="100" value="8" class="tactical-slider" oninput="onSliderChange()">
+                    </div>
+
+                    <!-- Suwak 3: Napięcie dyplomatyczne -->
+                    <div>
+                        <div class="flex justify-between text-xs font-mono mb-1">
+                            <label for="slider-diplomacy" class="text-slate-300 flex items-center gap-1.5">
+                                <i data-lucide="globe-2" class="w-3.5 h-3.5 text-amber-400"></i> Napięcie dyplomatyczne
+                            </label>
+                            <span id="val-diplomacy" class="font-bold text-slate-200">12%</span>
+                        </div>
+                        <input id="slider-diplomacy" type="range" min="0" max="100" value="12" class="tactical-slider" oninput="onSliderChange()">
+                    </div>
+
+                    <!-- Suwak 4: Wykrycia radarowe i satelitarne -->
+                    <div>
+                        <div class="flex justify-between text-xs font-mono mb-1">
+                            <label for="slider-radar" class="text-slate-300 flex items-center gap-1.5">
+                                <i data-lucide="radio" class="w-3.5 h-3.5 text-purple-400"></i> Anomalie radarowe / satelitarne
+                            </label>
+                            <span id="val-radar" class="font-bold text-slate-200">5%</span>
+                        </div>
+                        <input id="slider-radar" type="range" min="0" max="100" value="5" class="tactical-slider" oninput="onSliderChange()">
+                    </div>
+
+                    <!-- Suwak 5: Gotowość nuklearna -->
+                    <div>
+                        <div class="flex justify-between text-xs font-mono mb-1">
+                            <label for="slider-nuclear" class="text-slate-300 flex items-center gap-1.5">
+                                <i data-lucide="radiation" class="w-3.5 h-3.5 text-rose-400"></i> Aktywność sił strategicznych
+                            </label>
+                            <span id="val-nuclear" class="font-bold text-slate-200">5%</span>
+                        </div>
+                        <input id="slider-nuclear" type="range" min="0" max="100" value="5" class="tactical-slider" oninput="onSliderChange()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- KARTA 6: DZIENNIK ZDARZEŃ SYSTEMOWYCH (LOGI W CZASIE RZECZYWISTYM) -->
+            <div class="cmd-panel rounded-xl p-5 flex-1 flex flex-col min-h-[290px]">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="font-mono text-xs uppercase tracking-widest text-slate-200 font-bold flex items-center gap-2">
+                        <i data-lucide="scroll-text" class="w-4 h-4 text-emerald-400"></i>
+                        DZIENNIK ZDARZEŃ (LOGI OPERACYJNE)
+                    </h2>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="copyLogsToClipboard()" title="Kopiuj dziennik" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 text-[10px] font-mono text-slate-300 border border-slate-800 transition">
+                            KOPIUJ
+                        </button>
+                        <button onclick="clearEventLogs()" title="Wyczyść dziennik" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 text-[10px] font-mono text-slate-400 border border-slate-800 transition">
+                            CZYŚĆ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Okno terminala logów -->
+                <div id="event-log-container" class="flex-1 bg-[#04070c] border border-slate-800/90 rounded-lg p-3 font-mono text-[11px] overflow-y-auto max-h-[300px] space-y-2">
+                    <!-- Logi dodawane dynamicznie w JS -->
+                </div>
+
+                <!-- Ręczne wprowadzenie komunikatu operacyjnego -->
+                <div class="mt-3 flex gap-1.5">
+                    <input id="custom-log-input" type="text" placeholder="Wprowadź notatkę oficera dyżurnego..." onkeydown="if(event.key==='Enter') addOfficerNote()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-600">
+                    <button onclick="addOfficerNote()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono font-semibold text-slate-200 border border-slate-700 shrink-0 transition">
+                        DODAJ
+                    </button>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- STOPKA TELEMETRYCZNA -->
+    <footer class="border-t border-slate-800/80 bg-[#05080f] py-2.5 px-4 text-[11px] font-mono text-slate-500">
+        <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div>STRATCOM / NORAD COMMAND CENTER SIMULATOR // INTERFEJS TAKTYCZNY</div>
+            <div class="flex items-center gap-4">
+                <span>TRYB STEROWANIA: <strong id="footer-mode" class="text-slate-300">AUTOMATYCZNY</strong></span>
+                <span>SYNTEZATOR AUDIO: <strong id="footer-audio" class="text-emerald-400">GOTOWY</strong></span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- SKRYPT LOGIKI SYMULATORA, GRAFIKI CANVAS I WEB AUDIO API -->
+    <script>
+        // Inicjalizacja ikon Lucide
+        lucide.createIcons();
+
+        // ============================================================================
+        // 1. BAZA DANYCH POZIOMÓW DEFCON
+        // ============================================================================
+        const DEFCON_DATA = {
+            5: {
+                level: 5,
+                codename: "FADE OUT",
+                title: "DEFCON 5",
+                subtitle: "NORMALNA GOTOWOŚĆ POKOJOWA (NIEBIESKI)",
+                color: "#3b82f6", // blue-500
+                glow: "rgba(59, 130, 246, 0.35)",
+                bgTint: "rgba(59, 130, 246, 0.06)",
+                badgeClass: "text-blue-400",
+                palStatus: "ZABLOKOWANE (POKÓJ)",
+                palClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+                procBadge: "STANDARD",
+                description: "Najniższy poziom zagrożenia. Brak bezpośrednich symptomów agresji strategicznej. Siły zbrojne funkcjonują w standardowym reżimie pokojowym, prowadząc rutynowy dozór radiolokacyjny i szkolenia.",
+                procedures: [
+                    "Rutynowy nadzór przestrzeni powietrznej i orbitalnej (NORAD)",
+                    "Standardowa rotacja dyżurnych okrętów podwodnych SSBN",
+                    "Kody autoryzacji nuklearnej (PAL) w stanie spoczynku",
+                    "Komunikacja dyplomatyczna i wojskowa na otwartych kanałach"
+                ],
+                forces: [
+                    { name: "Siły Strategiczne (ICBM / Silosy)", status: "TRYB KONSERWACJI", pct: 20, color: "bg-blue-500" },
+                    { name: "Lotnictwo Strategiczne (B-52 / B-2)", status: "W BAZACH STAŁYCH", pct: 15, color: "bg-blue-500" },
+                    { name: "Flota Podwodna (SSBN Ohio/Vanguard)", status: "PATROL RUTYNOWY", pct: 35, color: "bg-blue-500" },
+                    { name: "Obrona Rakietowa i Kosmiczna (SBIRS)", status: "DOZÓR CIĄGŁY", pct: 50, color: "bg-emerald-500" },
+                    { name: "Wojska Cybernetyczne (CYBERCOM)", status: "MONITORING SIECI", pct: 30, color: "bg-blue-500" }
+                ]
+            },
+            4: {
+                level: 4,
+                codename: "DOUBLE TAKE",
+                title: "DEFCON 4",
+                subtitle: "PODWYŻSZONA GOTOWOŚĆ WYWIADOWCZA (ZIELONY)",
+                color: "#10b981", // emerald-500
+                glow: "rgba(16, 185, 129, 0.35)",
+                bgTint: "rgba(16, 185, 129, 0.06)",
+                badgeClass: "text-emerald-400",
+                palStatus: "ZABLOKOWANE (BEZPIECZNE)",
+                palClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+                procBadge: "PODWYŻSZONY",
+                description: "Zwiększona aktywność wywiadowcza i zaostrzenie środków bezpieczeństwa narodowego w reakcji na regionalne napięcia polityczne lub nietypowe manewry obcych wojsk.",
+                procedures: [
+                    "Wzmocnienie ochrony kontrwywiadowczej baz strategicznych",
+                    "Zwiększona częstotliwość skanowania satelitarnego i nasłuchu SIGINT",
+                    "Weryfikacja gotowości rezerwowych stanowisk dowodzenia",
+                    "Dodatkowe patrole myśliwców przechwytujących na granicach ADIZ"
+                ],
+                forces: [
+                    { name: "Siły Strategiczne (ICBM / Silosy)", status: "INSPEKCJA SYSTEMÓW", pct: 40, color: "bg-emerald-500" },
+                    { name: "Lotnictwo Strategiczne (B-52 / B-2)", status: "GOTOWOŚĆ 24H", pct: 35, color: "bg-emerald-500" },
+                    { name: "Flota Podwodna (SSBN Ohio/Vanguard)", status: "ZWIĘKSZONY NASŁUCH", pct: 55, color: "bg-emerald-500" },
+                    { name: "Obrona Rakietowa i Kosmiczna (SBIRS)", status: "SKANOWANIE AKTYWNE", pct: 70, color: "bg-emerald-500" },
+                    { name: "Wojska Cybernetyczne (CYBERCOM)", status: "FILTROWANIE RUCHU", pct: 55, color: "bg-emerald-500" }
+                ]
+            },
+            3: {
+                level: 3,
+                codename: "ROUND HOUSE",
+                title: "DEFCON 3",
+                subtitle: "ZWIĘKSZONA GOTOWOŚĆ BOJOWA SIŁ (ŻÓŁTY)",
+                color: "#eab308", // yellow-500
+                glow: "rgba(234, 179, 8, 0.4)",
+                bgTint: "rgba(234, 179, 8, 0.07)",
+                badgeClass: "text-yellow-400",
+                palStatus: "WERYFIKACJA KLUCZY",
+                palClass: "bg-yellow-500/15 text-yellow-400 border-yellow-500/40",
+                procBadge: "ALARM TAKTYCZNY",
+                description: "Poważny kryzys międzynarodowy lub bezpośrednie ryzyko starcia zbrojnego. Siły Powietrzne gotowe do mobilizacji w ciągu 15 minut. Cała komunikacja wojskowa przechodzi na reżim pełnego szyfrowania.",
+                procedures: [
+                    "Przejście wszystkich jednostek na niejawną komunikację kryptograficzną",
+                    "Wstrzymanie urlopów i wezwanie personelu kluczowego do jednostek",
+                    "Rozproszenie części lotnictwa strategicznego na lotniska zapasowe",
+                    "Uruchomienie powietrznych stanowisk dowodzenia (E-4B Nightwatch / E-6B)"
+                ],
+                forces: [
+                    { name: "Siły Strategiczne (ICBM / Silosy)", status: "GOTOWOŚĆ BOJOWA", pct: 70, color: "bg-yellow-500" },
+                    { name: "Lotnictwo Strategiczne (B-52 / B-2)", status: "ALARM 15-MINUTOWY", pct: 75, color: "bg-yellow-500" },
+                    { name: "Flota Podwodna (SSBN Ohio/Vanguard)", status: "WYJŚCIE NA POZYCJE", pct: 80, color: "bg-yellow-500" },
+                    { name: "Obrona Rakietowa i Kosmiczna (SBIRS)", status: "ŚLEDZENIE CELÓW", pct: 85, color: "bg-yellow-500" },
+                    { name: "Wojska Cybernetyczne (CYBERCOM)", status: "AKTYWNA OBRONA", pct: 80, color: "bg-yellow-500" }
+                ]
+            },
+            2: {
+                level: 2,
+                codename: "FAST PACE",
+                title: "DEFCON 2",
+                subtitle: "KROK OD WOJNY NUKLEARNEJ (CZERWONY)",
+                color: "#ef4444", // red-500
+                glow: "rgba(239, 68, 68, 0.45)",
+                bgTint: "rgba(239, 68, 68, 0.08)",
+                badgeClass: "text-red-500",
+                palStatus: "GOTOWOŚĆ AUTORYZACJI",
+                palClass: "bg-red-500/20 text-red-400 border-red-500/50",
+                procBadge: "STAN KRYTYCZNY",
+                description: "Siły zbrojne gotowe do rozmieszczenia i podjęcia działań bojowych w czasie krótszym niż 6 godzin. Bezpośrednie zagrożenie użyciem broni masowego rażenia przez przeciwnika.",
+                procedures: [
+                    "Bombowce strategiczne uzbrojone i utrzymywane w dyżurze na pasach startowych",
+                    "Okręty podwodne SSBN na pozycjach strzeleckich w reżimie ciszy radiowej",
+                    "Ewakuacja kierownictwa państwa do podziemnych bunkrów dowodzenia (Cheyenne Mountain)",
+                    "Odbezpieczenie procedur celowania SIOP i synchronizacja żyroskopów rakiet ICBM"
+                ],
+                forces: [
+                    { name: "Siły Strategiczne (ICBM / Silosy)", status: "CELE WPROWADZONE", pct: 92, color: "bg-red-500" },
+                    { name: "Lotnictwo Strategiczne (B-52 / B-2)", status: "PATROL W POWIETRZU", pct: 95, color: "bg-red-500" },
+                    { name: "Flota Podwodna (SSBN Ohio/Vanguard)", status: "GOTOWOŚĆ BOJOWA", pct: 95, color: "bg-red-500" },
+                    { name: "Obrona Rakietowa i Kosmiczna (SBIRS)", status: "PRZECHWYTYWANIE", pct: 98, color: "bg-red-500" },
+                    { name: "Wojska Cybernetyczne (CYBERCOM)", status: "OPERACJE OFENSYWNE", pct: 95, color: "bg-red-500" }
+                ]
+            },
+            1: {
+                level: 1,
+                codename: "COCKED PISTOL",
+                title: "DEFCON 1",
+                subtitle: "MAKSYMALNE ZAGROŻENIE / WOJNA NUKLEARNA (BIAŁY)",
+                color: "#f8fafc", // slate-50 (White with red accents)
+                glow: "rgba(248, 250, 252, 0.65)",
+                bgTint: "rgba(220, 38, 38, 0.14)",
+                badgeClass: "text-white",
+                palStatus: "ODBLOKOWANE // KOD ZŁOTY AKTYWNY",
+                palClass: "bg-white text-red-950 border-red-500 font-extrabold animate-pulse",
+                procBadge: "ALARM BOJOWY SIOP",
+                description: "Maksymalna gotowość bojowa. Nieuchronny lub trwający atak jądrowy na terytorium sojusznicze. Wszystkie siły strategiczne upoważnione do natychmiastowego wykonania uderzenia odwetowego.",
+                procedures: [
+                    "Autoryzacja pakietów uderzeniowych przez Narodowe Kolegium Dowodzenia (NCA)",
+                    "Otwarcie pokryw silosów rakiet balistycznych Minuteman III i aktywacja wyrzutni SLBM",
+                    "Transmisja rozkazu bojowego EAM (Emergency Action Message) na wszystkich częstotliwościach",
+                    "Aktywacja systemów obrony antybalistycznej GMD / Aegis Ashore w trybie ognia ciągłego"
+                ],
+                forces: [
+                    { name: "Siły Strategiczne (ICBM / Silosy)", status: "PROCEDURA STARTU", pct: 100, color: "bg-white" },
+                    { name: "Lotnictwo Strategiczne (B-52 / B-2)", status: "W DRODZE DO CELÓW", pct: 100, color: "bg-white" },
+                    { name: "Flota Podwodna (SSBN Ohio/Vanguard)", status: "SEKWENCJA OGNIOWA", pct: 100, color: "bg-white" },
+                    { name: "Obrona Rakietowa i Kosmiczna (SBIRS)", status: "OGIEŃ Zaporowy ABM", pct: 100, color: "bg-white" },
+                    { name: "Wojska Cybernetyczne (CYBERCOM)", status: "PEŁNE UDERZENIE", pct: 100, color: "bg-white" }
+                ]
+            }
+        };
+
+        // ============================================================================
+        // 2. STAN APLIKACJI
+        // ============================================================================
+        let currentDefcon = 5;
+        let controlMode = 'AUTO'; // 'AUTO' lub 'MANUAL'
+        let radarMode = 'MAP'; // 'MAP' lub 'POLAR'
+        let audioEnabled = true;
+        let audioCtx = null;
+        let customAudioVolume = 0.9;
+
+        // ============================================================================
+        // 2B. KONFIGURACJA PLIKÓW MP3 UŻYTKOWNIKA (ZGODNIE ZE ZDJĘCIEM)
+        // ============================================================================
+        const CUSTOM_AUDIO_CONFIG = {
+            1: {
+                alertName: "defcon 1 alert.mp3",
+                alertSrc: "./defcon 1 alert.mp3",
+                alertLoaded: false,
+                announcementName: "defcon 1 announcment.mp3",
+                announcementSrc: "./defcon 1 announcment.mp3",
+                announcementLoaded: false
+            },
+            2: {
+                alertName: "defcon 2 alert.mp3",
+                alertSrc: "./defcon 2 alert.mp3",
+                alertLoaded: false,
+                announcementName: "defcon 2 announcment.mp3",
+                announcementSrc: "./defcon 2 announcment.mp3",
+                announcementLoaded: false
+            },
+            3: {
+                alertName: "defcon 3 alert.mp3",
+                alertSrc: "./defcon 3 alert.mp3",
+                alertLoaded: false,
+                announcementName: "defcon 3 announcment.mp3",
+                announcementSrc: "./defcon 3 announcment.mp3",
+                announcementLoaded: false
+            },
+            4: {
+                alertName: "defcon 4 alert.mp3",
+                alertSrc: "./defcon 4 alert.mp3",
+                alertLoaded: false,
+                announcementName: "defcon 4 announcment.mp3",
+                announcementSrc: "./defcon 4 announcment.mp3",
+                announcementLoaded: false
+            },
+            5: {
+                alertName: "defcon 5 alert.mp3",
+                alertSrc: "./defcon 5 alert.mp3",
+                alertLoaded: false,
+                announcementName: null, // Poziom 5 nie posiada słownego ogłoszenia alarmu
+                announcementSrc: null,
+                announcementLoaded: false
+            }
+        };
+
+        let activeHtmlAudio = null;
+        let activeSequenceToken = 0;
+
+        // Obiekty na mapie taktycznej
+        const strategicBases = [
+            { name: "NORAD / Cheyenne Mtn", lat: 38.74, lon: -104.84, type: "BASE" },
+            { name: "STRATCOM Offutt", lat: 41.11, lon: -95.91, type: "BASE" },
+            { name: "RAMSTEIN Air Base", lat: 49.43, lon: 7.60, type: "BASE" },
+            { name: "REDZIKOWO Aegis", lat: 54.47, lon: 17.10, type: "BASE" },
+            { name: "THULE BMEWS Radar", lat: 76.53, lon: -68.70, type: "BASE" },
+            { name: "Kadena AB", lat: 26.35, lon: 127.76, type: "BASE" }
+        ];
+
+        let hotspots = [
+            { id: 1, name: "Strefa Arktyczna (Patrol)", lat: 73.5, lon: 35.0, radius: 14, severity: 1 },
+            { id: 2, name: "Cieśnina Tajwańska", lat: 24.0, lon: 120.5, radius: 12, severity: 1 }
+        ];
+
+        let trajectories = []; // { fromLat, fromLon, toLat, toLon, progress, speed, label, color }
+        let reconPulses = [];  // { x, y, radius, alpha, label }
+        let satellites = [
+            { name: "SBIRS-GEO-1", lon: -40, lat: 0, speed: 0.18, inclination: 22, phase: 0 },
+            { name: "SBIRS-GEO-4", lon: 65, lat: 0, speed: 0.22, inclination: 48, phase: 2.1 },
+            { name: "KEYHOLE-12", lon: 140, lat: 0, speed: 0.28, inclination: 62, phase: 4.2 }
+        ];
+
+        // ============================================================================
+        // 3. SYNTEZATOR DŹWIĘKÓW ALARMOWYCH (WEB AUDIO API)
+        // ============================================================================
+        function initAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    audioCtx = new AudioContextClass();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleAudio() {
+            initAudioContext();
+            audioEnabled = !audioEnabled;
+            const btn = document.getElementById('btn-audio-toggle');
+            const label = document.getElementById('audio-label');
+            const footerAudio = document.getElementById('footer-audio');
+
+            if (audioEnabled) {
+                btn.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition";
+                label.textContent = "AUDIO: WŁ";
+                footerAudio.textContent = "AKTYWNY";
+                footerAudio.className = "text-emerald-400";
+                playUiBeep(880, 0.06);
+                addLog("Syntezator audio Web Audio API aktywowany.", "INFO");
+            } else {
+                btn.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-mono font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/25 transition";
+                label.textContent = "AUDIO: WYŁ";
+                footerAudio.textContent = "WYCISZONY";
+                footerAudio.className = "text-rose-400";
+                stopActiveCustomAudio();
+                addLog("Sygnały dźwiękowe centrali zostały wyciszone.", "INFO");
+            }
+        }
+
+        function updateCustomAudioVolume(val) {
+            customAudioVolume = Math.max(0, Math.min(1, parseInt(val, 10) / 100));
+            document.getElementById('audio-volume-label').textContent = `${val}%`;
+            if (activeHtmlAudio) {
+                activeHtmlAudio.volume = customAudioVolume;
+            }
+        }
+
+        // Dopasowanie wgranych przez użytkownika plików MP3 (obsługuje "announcment" oraz "announcement")
+        function handleCustomAudioFiles(fileList) {
+            if (!fileList || fileList.length === 0) return;
+            let matchedCount = 0;
+
+            Array.from(fileList).forEach(file => {
+                const rawName = file.name.toLowerCase().trim();
+                const levelMatch = rawName.match(/defcon[\s_-]*([1-5])/);
+                if (!levelMatch) return;
+
+                const level = parseInt(levelMatch[1], 10);
+                const cfg = CUSTOM_AUDIO_CONFIG[level];
+                if (!cfg) return;
+
+                if (rawName.includes('alert')) {
+                    if (cfg.alertLoaded && cfg.alertSrc.startsWith('blob:')) {
+                        URL.revokeObjectURL(cfg.alertSrc);
+                    }
+                    cfg.alertSrc = URL.createObjectURL(file);
+                    cfg.alertLoaded = true;
+                    matchedCount++;
+                } else if (rawName.includes('announc') && level !== 5) {
+                    if (cfg.announcementLoaded && cfg.announcementSrc && cfg.announcementSrc.startsWith('blob:')) {
+                        URL.revokeObjectURL(cfg.announcementSrc);
+                    }
+                    cfg.announcementSrc = URL.createObjectURL(file);
+                    cfg.announcementLoaded = true;
+                    matchedCount++;
+                }
+            });
+
+            renderAudioFilesMatrix();
+            updateLoadedMp3Badge();
+
+            if (matchedCount > 0) {
+                addLog(`Załadowano do pamięci podręcznej ${matchedCount} własnych plików dźwiękowych MP3 DEFCON.`, "INFO");
+                playUiBeep(880, 0.06);
+            } else {
+                addLog("Nie rozpoznano nazw wgranych plików. Upewnij się, że nazywają się np. 'defcon 1 alert.mp3' lub 'defcon 1 announcment.mp3'.", "WARN");
+            }
+        }
+
+        function updateLoadedMp3Badge() {
+            let totalLoaded = 0;
+            for (let lvl = 1; lvl <= 5; lvl++) {
+                if (CUSTOM_AUDIO_CONFIG[lvl].alertLoaded) totalLoaded++;
+                if (lvl !== 5 && CUSTOM_AUDIO_CONFIG[lvl].announcementLoaded) totalLoaded++;
+            }
+            const badge = document.getElementById('mp3-loaded-badge');
+            if (badge) {
+                badge.textContent = `WGRAJ MP3 (${totalLoaded}/9)`;
+            }
+        }
+
+        function renderAudioFilesMatrix() {
+            const container = document.getElementById('audio-files-matrix');
+            if (!container) return;
+
+            let html = '';
+            for (let lvl = 1; lvl <= 5; lvl++) {
+                const cfg = CUSTOM_AUDIO_CONFIG[lvl];
+                const alertBadge = cfg.alertLoaded
+                    ? `<span class="text-emerald-400 font-bold">[WGRANO]</span>`
+                    : `<span class="text-slate-500">[LOKALNY]</span>`;
+
+                let annPart = '';
+                if (lvl === 5) {
+                    annPart = `<span class="text-slate-500 italic">Brak ogłoszenia (Tylko alarm)</span>`;
+                } else {
+                    const annBadge = cfg.announcementLoaded
+                        ? `<span class="text-emerald-400 font-bold">[WGRANO]</span>`
+                        : `<span class="text-slate-500">[LOKALNY]</span>`;
+                    annPart = `<span class="text-slate-300">${cfg.announcementName}</span> ${annBadge}`;
+                }
+
+                html += `
+                    <div class="bg-slate-900/75 border border-slate-800/90 rounded px-2.5 py-1.5 flex items-center justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 truncate">
+                                <span class="px-1.5 py-0.2 rounded bg-slate-800 text-slate-200 font-bold text-[10px]">DEF ${lvl}</span>
+                                <span class="text-slate-300 truncate">1. ${cfg.alertName}</span>
+                                ${alertBadge}
+                            </div>
+                            <div class="text-[10px] pl-11 truncate mt-0.5">
+                                2. ${annPart}
+                            </div>
+                        </div>
+                        <button onclick="playDefconAudioSequence(${lvl})" title="Testuj sekwencję DEFCON ${lvl}" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 text-[10px] font-bold shrink-0 transition">
+                            ▶ TEST
+                        </button>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        function stopActiveCustomAudio() {
+            activeSequenceToken++;
+            if (activeHtmlAudio) {
+                try {
+                    activeHtmlAudio.onended = null;
+                    activeHtmlAudio.onerror = null;
+                    activeHtmlAudio.pause();
+                    activeHtmlAudio.currentTime = 0;
+                } catch (e) {}
+                activeHtmlAudio = null;
+            }
+            updateAudioMonitorUI("GOTOWY (CZUWANIE)", "Oczekiwanie na zmianę poziomu DEFCON...", false);
+        }
+
+        function updateAudioMonitorUI(stageText, detailText, isPlaying) {
+            const stageEl = document.getElementById('audio-seq-stage');
+            const nowPlayingEl = document.getElementById('audio-now-playing');
+            const stopBtn = document.getElementById('btn-stop-audio');
+
+            if (stageEl) {
+                stageEl.textContent = stageText;
+                stageEl.className = isPlaying
+                    ? "px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold animate-pulse"
+                    : "px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-bold";
+            }
+            if (nowPlayingEl) {
+                nowPlayingEl.textContent = detailText;
+            }
+            if (stopBtn) {
+                stopBtn.className = isPlaying
+                    ? "flex px-2 py-1.5 rounded-md text-xs font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 transition items-center gap-1"
+                    : "hidden px-2 py-1.5 rounded-md text-xs font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 transition items-center gap-1";
+            }
+        }
+
+        // Pomocnicza funkcja odtwarzająca pojedynczy plik audio z obsługą alternatywnej pisowni
+        function playSingleAudioFile(srcList, seqToken, onSuccessEnd, onAllFailed) {
+            let idx = 0;
+
+            function tryNext() {
+                if (seqToken !== activeSequenceToken) return;
+                if (idx >= srcList.length) {
+                    onAllFailed();
+                    return;
+                }
+
+                const currentSrc = srcList[idx++];
+                const audio = new Audio();
+                audio.volume = customAudioVolume;
+                activeHtmlAudio = audio;
+
+                let handledError = false;
+                const failHandler = () => {
+                    if (handledError || seqToken !== activeSequenceToken) return;
+                    handledError = true;
+                    audio.onended = null;
+                    audio.onerror = null;
+                    tryNext();
+                };
+
+                audio.onended = () => {
+                    if (seqToken !== activeSequenceToken) return;
+                    activeHtmlAudio = null;
+                    onSuccessEnd();
+                };
+
+                audio.onerror = failHandler;
+                audio.src = currentSrc;
+
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(failHandler);
+                }
+            }
+
+            tryNext();
+        }
+
+        // Główna funkcja sekwencyjna: 1) Dźwięk alarmu (alert.mp3) -> 2) Ogłoszenie poziomu (announcment.mp3)
+        function playDefconAudioSequence(level) {
+            if (!audioEnabled) return;
+
+            stopActiveCustomAudio();
+            const myToken = ++activeSequenceToken;
+            const cfg = CUSTOM_AUDIO_CONFIG[level];
+            if (!cfg) return;
+
+            const hasAnnouncement = (level !== 5 && cfg.announcementName !== null);
+            const totalSteps = hasAnnouncement ? 2 : 1;
+
+            updateAudioMonitorUI(
+                `ETAP 1/${totalSteps}: ALARM`,
+                `Odtwarzanie: ${cfg.alertName}`,
+                true
+            );
+
+            const alertCandidates = cfg.alertLoaded
+                ? [cfg.alertSrc]
+                : [cfg.alertSrc, encodeURI(cfg.alertSrc)];
+
+            playSingleAudioFile(
+                alertCandidates,
+                myToken,
+                () => {
+                    // Po zakończeniu alarmu -> sprawdź czy poziom posiada słowne ogłoszenie (poziomy 1-4)
+                    if (myToken !== activeSequenceToken) return;
+
+                    if (!hasAnnouncement) {
+                        updateAudioMonitorUI(
+                            "ZAKOŃCZONO SEKWENCJĘ",
+                            `Zakończono: ${cfg.alertName} (DEFCON 5 bez ogłoszenia głosowego)`,
+                            false
+                        );
+                        return;
+                    }
+
+                    // Etap 2/2: Odtwarzanie ogłoszenia poziomu
+                    updateAudioMonitorUI(
+                        `ETAP 2/2: OGŁOSZENIE`,
+                        `Odtwarzanie: ${cfg.announcementName}`,
+                        true
+                    );
+
+                    const altSpelling = `./defcon ${level} announcement.mp3`;
+                    const announcementCandidates = cfg.announcementLoaded
+                        ? [cfg.announcementSrc]
+                        : [cfg.announcementSrc, encodeURI(cfg.announcementSrc), altSpelling, encodeURI(altSpelling)];
+
+                    playSingleAudioFile(
+                        announcementCandidates,
+                        myToken,
+                        () => {
+                            if (myToken !== activeSequenceToken) return;
+                            updateAudioMonitorUI(
+                                "ZAKOŃCZONO SEKWENCJĘ",
+                                `Wybrzmiano: ${cfg.alertName} ➔ ${cfg.announcementName}`,
+                                false
+                            );
+                        },
+                        () => {
+                            if (myToken !== activeSequenceToken) return;
+                            updateAudioMonitorUI(
+                                "BRAK PLIKU OGŁOSZENIA",
+                                `Nie znaleziono pliku: ${cfg.announcementName} (Wgraj przyciskiem WGRAJ MP3)`,
+                                false
+                            );
+                            addLog(`Nie udało się wczytać pliku ogłoszenia "${cfg.announcementName}". Użyj przycisku "WGRAJ MP3", aby wskazać pliki z urządzenia.`, "WARN");
+                        }
+                    );
+                },
+                () => {
+                    // Fallback do syntezatora Web Audio API, jeśli pliki MP3 nie zostały jeszcze wgrane
+                    if (myToken !== activeSequenceToken) return;
+                    updateAudioMonitorUI(
+                        "SYNTEZATOR AWARYJNY",
+                        `Brak pliku ${cfg.alertName} – użyto syntezatora Web Audio API`,
+                        false
+                    );
+                    playFallbackSynthesizedKlaxon(level);
+                }
+            );
+        }
+
+        function playUiBeep(freq = 620, duration = 0.04, type = 'sine') {
+            if (!audioEnabled) return;
+            try {
+                initAudioContext();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                // Ignoruj błędy autostartu przed interakcją
+            }
+        }
+
+        function playDefconKlaxon(level) {
+            playDefconAudioSequence(level);
+        }
+
+        function playFallbackSynthesizedKlaxon(level) {
+            if (!audioEnabled) return;
+            try {
+                initAudioContext();
+                const now = audioCtx.currentTime;
+
+                if (level === 1) {
+                    // Intensywny alarm bojowy DEFCON 1 (3 pulsujące syreny)
+                    for (let i = 0; i < 3; i++) {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(420, now + i * 0.45);
+                        osc.frequency.linearRampToValueAtTime(880, now + i * 0.45 + 0.25);
+                        osc.frequency.linearRampToValueAtTime(380, now + i * 0.45 + 0.42);
+
+                        gain.gain.setValueAtTime(0.15, now + i * 0.45);
+                        gain.gain.exponentialRampToValueAtTime(0.005, now + i * 0.45 + 0.43);
+
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + i * 0.45);
+                        osc.stop(now + i * 0.45 + 0.44);
+                    }
+                } else if (level === 2) {
+                    // Podwójny niski klakson DEFCON 2
+                    for (let i = 0; i < 2; i++) {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(340, now + i * 0.4);
+                        osc.frequency.setValueAtTime(520, now + i * 0.4 + 0.18);
+
+                        gain.gain.setValueAtTime(0.12, now + i * 0.4);
+                        gain.gain.exponentialRampToValueAtTime(0.005, now + i * 0.4 + 0.35);
+
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + i * 0.4);
+                        osc.stop(now + i * 0.4 + 0.36);
+                    }
+                } else if (level === 3) {
+                    // Ostrzegawczy sygnał taktyczny DEFCON 3
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(587.33, now); // D5
+                    osc.frequency.setValueAtTime(440, now + 0.18); // A4
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.005, now + 0.4);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.42);
+                } else {
+                    // Spokojny ton potwierdzenia dla DEFCON 4 i 5
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.12); // E5
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.005, now + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.32);
+                }
+            } catch (e) {}
+        }
+
+        function triggerTestSiren() {
+            addLog(`Uruchomiono test sekwencji audio dla aktualnego poziomu DEFCON ${currentDefcon}.`, "INFO");
+            playDefconAudioSequence(currentDefcon);
+        }
+
+        // ============================================================================
+        // 4. LOGIKA SUWAKÓW I WYLICZANIA POZIOMU DEFCON
+        // ============================================================================
+        function onSliderChange(fromScenario = false) {
+            const cyber = parseInt(document.getElementById('slider-cyber').value, 10);
+            const troops = parseInt(document.getElementById('slider-troops').value, 10);
+            const diplomacy = parseInt(document.getElementById('slider-diplomacy').value, 10);
+            const radar = parseInt(document.getElementById('slider-radar').value, 10);
+            const nuclear = parseInt(document.getElementById('slider-nuclear').value, 10);
+
+            document.getElementById('val-cyber').textContent = `${cyber}%`;
+            document.getElementById('val-troops').textContent = `${troops}%`;
+            document.getElementById('val-diplomacy').textContent = `${diplomacy}%`;
+            document.getElementById('val-radar').textContent = `${radar}%`;
+            document.getElementById('val-nuclear').textContent = `${nuclear}%`;
+
+            // Obliczanie ważonego indeksu napięcia (Gotowość nuklearna i radar mają wyższą wagę)
+            const tensionIndex = (
+                cyber * 0.16 +
+                troops * 0.18 +
+                diplomacy * 0.16 +
+                radar * 0.22 +
+                nuclear * 0.28
+            );
+
+            const formattedTension = tensionIndex.toFixed(1);
+            document.getElementById('tension-index-value').textContent = `${formattedTension}%`;
+            document.getElementById('tension-progress-bar').style.width = `${Math.min(100, tensionIndex)}%`;
+
+            if (!fromScenario) {
+                playUiBeep(400 + tensionIndex * 4, 0.025);
+            }
+
+            // Jeśli tryb AUTO, dopasuj poziom DEFCON do indeksu napięcia
+            if (controlMode === 'AUTO') {
+                let targetDefcon = 5;
+                if (tensionIndex >= 88 || nuclear >= 92) {
+                    targetDefcon = 1;
+                } else if (tensionIndex >= 68 || nuclear >= 75) {
+                    targetDefcon = 2;
+                } else if (tensionIndex >= 45) {
+                    targetDefcon = 3;
+                } else if (tensionIndex >= 22) {
+                    targetDefcon = 4;
+                } else {
+                    targetDefcon = 5;
+                }
+
+                if (targetDefcon !== currentDefcon) {
+                    applyDefconLevel(targetDefcon, "Automatyczna zmiana na podstawie Indeksu Napięcia Globalnego");
+                }
+            }
+        }
+
+        function setControlMode(mode) {
+            controlMode = mode;
+            const autoBtn = document.getElementById('mode-auto-btn');
+            const manualBtn = document.getElementById('mode-manual-btn');
+            const footerMode = document.getElementById('footer-mode');
+
+            if (mode === 'AUTO') {
+                autoBtn.className = "px-2.5 py-1 rounded-md bg-blue-600 text-white font-bold transition";
+                manualBtn.className = "px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition";
+                footerMode.textContent = "AUTOMATYCZNY (WG CZUJNIKÓW)";
+                addLog("Przełączono sterowanie DEFCON w tryb AUTOMATYCZNY.", "INFO");
+                onSliderChange(true);
+            } else {
+                manualBtn.className = "px-2.5 py-1 rounded-md bg-amber-600 text-white font-bold transition";
+                autoBtn.className = "px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition";
+                footerMode.textContent = "RĘCZNY (NADPISANIE SZTABOWE)";
+                addLog("Aktywowano RĘCZNE sterowanie poziomem DEFCON przez oficera dyżurnego.", "WARN");
+            }
+            playUiBeep(700, 0.05);
+        }
+
+        function manualSelectDefcon(level) {
+            if (controlMode !== 'MANUAL') {
+                setControlMode('MANUAL');
+            }
+            applyDefconLevel(level, "Ręczna autoryzacja zmiany stanu gotowości przez dowództwo");
+        }
+
+        function applyDefconLevel(level, reason = "") {
+            const previousLevel = currentDefcon;
+            currentDefcon = level;
+            const info = DEFCON_DATA[level];
+
+            // Aktualizacja zmiennych CSS dla motywu neonowego
+            document.documentElement.style.setProperty('--defcon-color', info.color);
+            document.documentElement.style.setProperty('--defcon-glow', info.glow);
+            document.documentElement.style.setProperty('--defcon-bg-tint', info.bgTint);
+
+            // Aktualizacja głównego tytułu i opisów
+            document.getElementById('defcon-codename').textContent = info.codename;
+            const bigTitle = document.getElementById('defcon-big-title');
+            bigTitle.textContent = info.title;
+            bigTitle.style.color = info.color;
+
+            if (level === 1) {
+                bigTitle.classList.add('animate-defcon1');
+            } else {
+                bigTitle.classList.remove('animate-defcon1');
+            }
+
+            const subtitle = document.getElementById('defcon-subtitle');
+            subtitle.textContent = info.subtitle;
+            subtitle.className = `text-sm font-semibold uppercase tracking-wide mt-1 ${info.badgeClass}`;
+
+            document.getElementById('defcon-description').textContent = info.description;
+            document.getElementById('procedure-count').textContent = info.procBadge;
+
+            // Aktualizacja ikony w nagłówku
+            const headerShield = document.getElementById('header-shield');
+            headerShield.style.borderColor = info.color;
+            headerShield.style.color = info.color;
+
+            // Aktualizacja koloru wartości indeksu napięcia
+            document.getElementById('tension-index-value').style.color = info.color;
+
+            // Aktualizacja kafelków 1-5
+            const pillColors = {
+                1: { border: '#f8fafc', bg: 'rgba(239, 68, 68, 0.28)', text: '#ffffff' },
+                2: { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.18)', text: '#ef4444' },
+                3: { border: '#eab308', bg: 'rgba(234, 179, 8, 0.18)', text: '#eab308' },
+                4: { border: '#10b981', bg: 'rgba(16, 185, 129, 0.18)', text: '#10b981' },
+                5: { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.18)', text: '#3b82f6' }
+            };
+
+            for (let i = 1; i <= 5; i++) {
+                const pill = document.getElementById(`pill-defcon-${i}`);
+                const numSpan = pill.querySelector('span:last-child');
+                if (i === level) {
+                    pill.style.borderColor = pillColors[i].border;
+                    pill.style.backgroundColor = pillColors[i].bg;
+                    pill.style.boxShadow = `0 0 15px ${info.glow}`;
+                    numSpan.style.color = pillColors[i].text;
+                } else {
+                    pill.style.borderColor = '#1e293b';
+                    pill.style.backgroundColor = 'rgba(15, 23, 42, 0.6)';
+                    pill.style.boxShadow = 'none';
+                    numSpan.style.color = '#475569';
+                }
+            }
+
+            // Aktualizacja listy procedur
+            const procList = document.getElementById('defcon-procedures');
+            procList.innerHTML = info.procedures.map(proc => `
+                <li class="flex items-start gap-2">
+                    <span class="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style="background-color: ${info.color}"></span>
+                    <span>${proc}</span>
+                </li>
+            `).join('');
+
+            // Aktualizacja statusu rodzajów sił zbrojnych
+            const forcesContainer = document.getElementById('forces-status-list');
+            forcesContainer.innerHTML = info.forces.map(f => `
+                <div class="bg-slate-900/70 border border-slate-800/80 rounded-lg p-2.5">
+                    <div class="flex items-center justify-between text-xs font-mono mb-1">
+                        <span class="text-slate-300 font-medium">${f.name}</span>
+                        <span class="text-[11px] font-bold" style="color: ${info.color}">${f.status}</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                        <div class="h-full ${f.color} transition-all duration-500" style="width: ${f.pct}%"></div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Status blokady PAL
+            const palBadge = document.getElementById('pal-status-badge');
+            palBadge.textContent = info.palStatus;
+            palBadge.className = `px-2 py-0.5 rounded border font-bold text-[11px] ${info.palClass}`;
+
+            // Dźwięk i wpis w dzienniku logów przy zmianie
+            if (previousLevel !== level) {
+                playDefconKlaxon(level);
+                const logType = level <= 2 ? 'CRITICAL' : (level === 3 ? 'WARN' : 'INFO');
+                const direction = level < previousLevel ? "ESKALACJA" : "DEESKALACJA";
+                addLog(`[${direction}] Zmieniono poziom gotowości na DEFCON ${level} (${info.codename}). ${reason}.`, logType);
+            }
+        }
+
+        // ============================================================================
+        // 5. GENERATOR SCENARIUSZY KRYZYSOWYCH
+        // ============================================================================
+        function animateSlidersTo(targets) {
+            const ids = {
+                cyber: 'slider-cyber',
+                troops: 'slider-troops',
+                diplomacy: 'slider-diplomacy',
+                radar: 'slider-radar',
+                nuclear: 'slider-nuclear'
+            };
+
+            Object.keys(targets).forEach(key => {
+                const el = document.getElementById(ids[key]);
+                if (el) {
+                    el.value = Math.max(0, Math.min(100, targets[key]));
+                }
+            });
+
+            if (controlMode === 'MANUAL') {
+                setControlMode('AUTO');
+            } else {
+                onSliderChange(true);
+            }
+        }
+
+        function runScenario(type) {
+            initAudioContext();
+
+            if (type === 'AIRSPACE') {
+                animateSlidersTo({ cyber: 30, troops: 55, diplomacy: 50, radar: 65, nuclear: 35 });
+                hotspots.push({
+                    id: Date.now(),
+                    name: "Naruszenie ADIZ (Biegun Płn.)",
+                    lat: 78.0,
+                    lon: -15.0,
+                    radius: 18,
+                    severity: 2
+                });
+                trajectories.push({
+                    fromLat: 68.9, fromLon: 33.0,
+                    toLat: 76.5, toLon: -68.7,
+                    progress: 0, speed: 0.004,
+                    label: "TU-160 FORMACJA",
+                    color: "#eab308"
+                });
+                addLog("Wykryto niezidentyfikowaną formację bombowców strategicznych w strefie identyfikacji obrony powietrznej (ADIZ). Podrywanie par dyżurnych F-22.", "WARN");
+            } 
+            else if (type === 'CYBERATTACK') {
+                animateSlidersTo({ cyber: 95, troops: 45, diplomacy: 65, radar: 50, nuclear: 40 });
+                hotspots.push({
+                    id: Date.now(),
+                    name: "Cyberatak (Węzeł Wschodni)",
+                    lat: 38.9,
+                    lon: -77.0,
+                    radius: 20,
+                    severity: 2
+                });
+                addLog("ALARM CYBERCOM: Wykryto skoordynowany atak na infrastrukturę krytyczną i rutery szkieletowe sieci obronnej SIPRNet.", "WARN");
+            }
+            else if (type === 'SAT_BLIND') {
+                animateSlidersTo({ cyber: 80, troops: 65, diplomacy: 75, radar: 90, nuclear: 70 });
+                hotspots.push({
+                    id: Date.now(),
+                    name: "Anomalia Orbitalna GEO-4",
+                    lat: 12.0,
+                    lon: 65.0,
+                    radius: 22,
+                    severity: 3
+                });
+                addLog("KRYTYCZNY: Utrata telemetrii z satelity wczesnego ostrzegania SBIRS-GEO-4. Podejrzenie użycia naziemnego lasera oślepiającego ASAT.", "CRITICAL");
+            }
+            else if (type === 'SUBMARINE') {
+                animateSlidersTo({ cyber: 45, troops: 75, diplomacy: 60, radar: 60, nuclear: 72 });
+                hotspots.push({
+                    id: Date.now(),
+                    name: "Zgrupowanie SSBN (Płn. Atlantyk)",
+                    lat: 63.0,
+                    lon: -28.0,
+                    radius: 19,
+                    severity: 2
+                });
+                addLog("Sieć hydroakustyczna SOSUS odnotowała wyjście 4 strategicznych okrętów podwodnych na głębokie wody Atlantyku.", "WARN");
+            }
+            else if (type === 'BALLISTIC') {
+                animateSlidersTo({ cyber: 92, troops: 90, diplomacy: 98, radar: 100, nuclear: 98 });
+                hotspots.push({
+                    id: Date.now(),
+                    name: "START ICBM (Sygnatura IR)",
+                    lat: 62.9,
+                    lon: 40.5,
+                    radius: 25,
+                    severity: 3
+                });
+                // Dodaj trajektorie balistyczne
+                trajectories.push(
+                    {
+                        fromLat: 62.9, fromLon: 40.5,
+                        toLat: 38.74, toLon: -104.84,
+                        progress: 0, speed: 0.0055,
+                        label: "ICBM-OBIEKT-01",
+                        color: "#ef4444"
+                    },
+                    {
+                        fromLat: 53.8, fromLon: 158.3,
+                        toLat: 41.11, toLon: -95.91,
+                        progress: 0, speed: 0.005,
+                        label: "SLBM-OBIEKT-02",
+                        color: "#ef4444"
+                    },
+                    {
+                        fromLat: 38.74, fromLon: -104.84,
+                        toLat: 62.9, toLon: 40.5,
+                        progress: 0, speed: 0.006,
+                        label: "GMD-ANTYRAKIETA",
+                        color: "#38bdf8"
+                    }
+                );
+                addLog("FLASH // SIOP-ESI: Satelity DSP/SBIRS wykryły pióropusze cieplne startu rakiet międzykontynentalnych ICBM! Czas dolotu: 26 minut.", "CRITICAL");
+            }
+            else if (type === 'PEACE_SUMMIT') {
+                trajectories = [];
+                hotspots = [
+                    { id: 1, name: "Genewa - Szczyt Dyplomatyczny", lat: 46.2, lon: 6.1, radius: 12, severity: 1 }
+                ];
+                animateSlidersTo({ cyber: 10, troops: 8, diplomacy: 10, radar: 5, nuclear: 5 });
+                addLog("Komunikat Gorącej Linii Waszyngton-Moskwa-Pekin: Podpisano protokół deeskalacyjny. Jednostki powracają do baz stałych.", "INFO");
+            }
+
+            // Ogranicz liczbę punktów zapalnych do maksymalnie 6
+            if (hotspots.length > 6) {
+                hotspots = hotspots.slice(hotspots.length - 6);
+            }
+            updateMapHudCounters();
+        }
+
+        function triggerRandomScenario() {
+            const randomEvents = [
+                {
+                    msg: "Wykryto nieautoryzowany przelot aparatu hipersonicznego w górnych warstwach atmosfery nad Pacyfikiem.",
+                    deltas: { radar: 25, nuclear: 15, diplomacy: 12 },
+                    spot: { name: "Anomalia Hipersoniczna", lat: 34.0, lon: 165.0, severity: 2 }
+                },
+                {
+                    msg: "Przerwanie podmorskiego kabla telekomunikacyjnego na Morzu Północnym. Trwa weryfikacja sabotażu.",
+                    deltas: { cyber: 28, troops: 15, diplomacy: 18 },
+                    spot: { name: "Awaria Kabla Podmorskiego", lat: 58.2, lon: 3.5, severity: 2 }
+                },
+                {
+                    msg: "Pomyślna inspekcja wzajemna arsenałów w ramach traktatu o kontroli zbrojeń. Spadek napięcia.",
+                    deltas: { nuclear: -20, diplomacy: -22, troops: -15 },
+                    spot: null
+                },
+                {
+                    msg: "Zakłócenia sygnału GPS/GLONASS o dużej mocy w rejonie Morza Bałtyckiego i Przesmyku Suwalskiego.",
+                    deltas: { cyber: 22, radar: 20, troops: 18 },
+                    spot: { name: "Zakłócenia WRE (Bałtyk)", lat: 55.2, lon: 19.8, severity: 2 }
+                }
+            ];
+
+            const picked = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+
+            const cur = {
+                cyber: parseInt(document.getElementById('slider-cyber').value, 10),
+                troops: parseInt(document.getElementById('slider-troops').value, 10),
+                diplomacy: parseInt(document.getElementById('slider-diplomacy').value, 10),
+                radar: parseInt(document.getElementById('slider-radar').value, 10),
+                nuclear: parseInt(document.getElementById('slider-nuclear').value, 10)
+            };
+
+            Object.keys(picked.deltas).forEach(k => {
+                cur[k] = Math.max(0, Math.min(100, cur[k] + picked.deltas[k]));
+            });
+
+            if (picked.spot) {
+                hotspots.push({
+                    id: Date.now(),
+                    name: picked.spot.name,
+                    lat: picked.spot.lat,
+                    lon: picked.spot.lon,
+                    radius: 16,
+                    severity: picked.spot.severity
+                });
+                if (hotspots.length > 6) hotspots.shift();
+            }
+
+            animateSlidersTo(cur);
+            addLog(picked.msg, picked.spot ? "WARN" : "INFO");
+            updateMapHudCounters();
+        }
+
+        function resetToPeace() {
+            runScenario('PEACE_SUMMIT');
+        }
+
+        // ============================================================================
+        // 6. DZIENNIK ZDARZEŃ (LOGI SYSTEMOWE)
+        // ============================================================================
+        function getZuluTimeStr() {
+            const now = new Date();
+            const hh = String(now.getUTCHours()).padStart(2, '0');
+            const mm = String(now.getUTCMinutes()).padStart(2, '0');
+            const ss = String(now.getUTCSeconds()).padStart(2, '0');
+            const ms = String(Math.floor(now.getUTCMilliseconds() / 100));
+            return `${hh}:${mm}:${ss}.${ms}Z`;
+        }
+
+        function addLog(message, level = "INFO") {
+            const container = document.getElementById('event-log-container');
+            const entry = document.createElement('div');
+
+            let badgeClass = "bg-sky-500/15 text-sky-400 border-sky-500/30";
+            let prefix = "INFO";
+            let textClass = "text-slate-300";
+
+            if (level === "WARN") {
+                badgeClass = "bg-amber-500/15 text-amber-400 border-amber-500/30";
+                prefix = "OSTRZEŻENIE";
+                textClass = "text-amber-200";
+            } else if (level === "CRITICAL") {
+                badgeClass = "bg-red-500/20 text-red-400 border-red-500/40";
+                prefix = "KRYTYCZNY";
+                textClass = "text-red-200 font-semibold";
+            }
+
+            entry.className = "p-2 rounded bg-slate-900/70 border border-slate-800/80 leading-relaxed";
+            entry.innerHTML = `
+                <div class="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
+                    <span>[${getZuluTimeStr()}]</span>
+                    <span class="px-1.5 py-0.2 rounded border text-[9px] font-bold ${badgeClass}">${prefix}</span>
+                </div>
+                <div class="${textClass}">${message}</div>
+            `;
+
+            container.prepend(entry);
+        }
+
+        function addOfficerNote() {
+            const input = document.getElementById('custom-log-input');
+            const text = input.value.trim();
+            if (!text) return;
+            addLog(`Notatka oficera dyżurnego: "${text}"`, "INFO");
+            input.value = "";
+            playUiBeep(780, 0.04);
+        }
+
+        function clearEventLogs() {
+            const container = document.getElementById('event-log-container');
+            container.innerHTML = "";
+            addLog("Dziennik zdarzeń został oczyszczony przez operatora.", "INFO");
+        }
+
+        function copyLogsToClipboard() {
+            const container = document.getElementById('event-log-container');
+            const text = container.innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            addLog("Skopiowano raport dziennika zdarzeń do schowka systemowego.", "INFO");
+            playUiBeep(920, 0.05);
+        }
+
+        // ============================================================================
+        // 7. WIZUALIZACJA MAPY ŚWIATA I RADARU BMEWS (HTML5 CANVAS)
+        // ============================================================================
+        const canvas = document.getElementById('tactical-canvas');
+        const ctx = canvas.getContext('2d');
+        let radarAngle = 0;
+
+        // Uproszczone wektorowe kontury kontynentów [lon, lat] dla siatki taktycznej NORAD
+        const CONTINENT_POLYGONS = [
+            // Ameryka Północna
+            [[-168,65],[-140,70],[-125,70],[-95,72],[-75,65],[-60,50],[-75,35],[-81,25],[-90,18],[-105,20],[-120,34],[-125,48],[-145,60],[-168,65]],
+            // Grenlandia
+            [[-55,60],[-42,60],[-20,70],[-22,82],[-55,81],[-68,76],[-55,60]],
+            // Ameryka Południowa
+            [[-80,10],[-62,10],[-35,-6],[-40,-22],[-55,-38],[-68,-54],[-75,-45],[-71,-18],[-80,0],[-80,10]],
+            // Europa
+            [[-10,36],[5,38],[15,38],[28,41],[40,45],[55,60],[40,70],[25,71],[10,62],[-5,58],[-10,44],[-10,36]],
+            // Afryka
+            [[-17,15],[-5,35],[11,37],[32,31],[51,12],[40,-10],[35,-25],[18,-35],[12,-18],[8,4],[-8,5],[-17,15]],
+            // Azja
+            [[28,41],[45,30],[60,25],[72,20],[80,8],[90,22],[104,1],[110,20],[122,30],[132,42],[142,52],[170,62],[180,68],[140,73],[100,76],[70,72],[55,60],[40,45],[28,41]],
+            // Australia
+            [[114,-22],[130,-12],[142,-11],[153,-26],[146,-38],[130,-33],[115,-34],[114,-22]],
+            // Japonia
+            [[130,31],[136,34],[141,41],[145,44],[140,38],[130,31]]
+        ];
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function latLonToXY(lat, lon, width, height) {
+            if (radarMode === 'MAP') {
+                const x = ((lon + 180) / 360) * width;
+                const y = ((90 - lat) / 180) * height;
+                return { x, y };
+            } else {
+                // Projekcja polarna (Biegun Północny w centrum)
+                const cx = width / 2;
+                const cy = height / 2;
+                const maxR = Math.min(cx, cy) * 0.88;
+                const clampedLat = Math.max(-30, lat);
+                const r = ((90 - clampedLat) / 120) * maxR;
+                const rad = (lon - 90) * (Math.PI / 180);
+                return {
+                    x: cx + r * Math.cos(rad),
+                    y: cy + r * Math.sin(rad)
+                };
+            }
+        }
+
+        function setRadarMode(mode) {
+            radarMode = mode;
+            const mapBtn = document.getElementById('view-map-btn');
+            const polarBtn = document.getElementById('view-polar-btn');
+
+            if (mode === 'MAP') {
+                mapBtn.className = "px-2.5 py-1 rounded bg-slate-800 text-white border border-slate-600 transition flex items-center gap-1";
+                polarBtn.className = "px-2.5 py-1 rounded bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-1";
+                addLog("Przełączono projekcję taktyczną na: Globalna Mapa Strategiczna.", "INFO");
+            } else {
+                polarBtn.className = "px-2.5 py-1 rounded bg-slate-800 text-white border border-slate-600 transition flex items-center gap-1";
+                mapBtn.className = "px-2.5 py-1 rounded bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-1";
+                addLog("Przełączono projekcję taktyczną na: Radar Polarny Wczesnego Ostrzegania BMEWS (Arktyka).", "INFO");
+            }
+            playUiBeep(640, 0.04);
+        }
+
+        function spawnReconPulse(customX, customY) {
+            const rect = canvas.getBoundingClientRect();
+            const x = customX !== undefined ? customX : rect.width * (0.25 + Math.random() * 0.5);
+            const y = customY !== undefined ? customY : rect.height * (0.25 + Math.random() * 0.5);
+            reconPulses.push({
+                x, y,
+                radius: 4,
+                alpha: 1.0,
+                label: `RECON-${Math.floor(100 + Math.random() * 899)}`
+            });
+            playUiBeep(980, 0.05);
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const lon = ((x / rect.width) * 360 - 180).toFixed(2);
+            const lat = (90 - (y / rect.height) * 180).toFixed(2);
+            const latDir = lat >= 0 ? 'N' : 'S';
+            const lonDir = lon >= 0 ? 'E' : 'W';
+            document.getElementById('hud-coords').textContent = `${Math.abs(lat)}°${latDir}, ${Math.abs(lon)}°${lonDir}`;
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            spawnReconPulse(x, y);
+        });
+
+        function updateMapHudCounters() {
+            document.getElementById('hud-hotspots-count').textContent = hotspots.length;
+            document.getElementById('hud-missiles-count').textContent = trajectories.length;
+            document.getElementById('hud-tracked-count').textContent = strategicBases.length + satellites.length + hotspots.length + trajectories.length;
+        }
+
+        function drawTacticalCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const w = rect.width;
+            const h = rect.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            const accentColor = DEFCON_DATA[currentDefcon].color;
+
+            // 1. Siatka współrzędnych
+            ctx.strokeStyle = "rgba(30, 41, 59, 0.65)";
+            ctx.lineWidth = 1;
+
+            if (radarMode === 'MAP') {
+                // Południki i równoleżniki
+                for (let lon = -150; lon <= 150; lon += 30) {
+                    const { x } = latLonToXY(0, lon, w, h);
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, h);
+                    ctx.stroke();
+                }
+                for (let lat = -60; lat <= 60; lat += 30) {
+                    const { y } = latLonToXY(lat, 0, w, h);
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(w, y);
+                    ctx.stroke();
+                }
+            } else {
+                // Okręgi radaru polarnego
+                const cx = w / 2;
+                const cy = h / 2;
+                const maxR = Math.min(cx, cy) * 0.88;
+                for (let r = 0.25; r <= 1.0; r += 0.25) {
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, maxR * r, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                for (let a = 0; a < 360; a += 30) {
+                    const rad = a * (Math.PI / 180);
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(cx + maxR * Math.cos(rad), cy + maxR * Math.sin(rad));
+                    ctx.stroke();
+                }
+            }
+
+            // 2. Rysowanie konturów kontynentów
+            ctx.strokeStyle = "rgba(56, 189, 248, 0.35)";
+            ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
+            ctx.lineWidth = 1.2;
+
+            CONTINENT_POLYGONS.forEach(poly => {
+                ctx.beginPath();
+                poly.forEach(([lon, lat], idx) => {
+                    const pt = latLonToXY(lat, lon, w, h);
+                    if (idx === 0) ctx.moveTo(pt.x, pt.y);
+                    else ctx.lineTo(pt.x, pt.y);
+                });
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            });
+
+            // 3. Rysowanie orbit satelitów wczesnego ostrzegania
+            satellites.forEach(sat => {
+                sat.lon += sat.speed;
+                if (sat.lon > 180) sat.lon -= 360;
+                sat.lat = Math.sin((sat.lon * Math.PI) / 180 + sat.phase) * sat.inclination;
+
+                const pt = latLonToXY(sat.lat, sat.lon, w, h);
+                ctx.fillStyle = "#10b981";
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.font = "9px 'JetBrains Mono'";
+                ctx.fillStyle = "rgba(16, 185, 129, 0.85)";
+                ctx.fillText(sat.name, pt.x + 6, pt.y + 3);
+            });
+
+            // 4. Rysowanie baz strategicznych
+            strategicBases.forEach(base => {
+                const pt = latLonToXY(base.lat, base.lon, w, h);
+                ctx.fillStyle = "#38bdf8";
+                ctx.fillRect(pt.x - 3, pt.y - 3, 6, 6);
+
+                ctx.strokeStyle = "rgba(56, 189, 248, 0.45)";
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.font = "9px 'JetBrains Mono'";
+                ctx.fillStyle = "rgba(186, 230, 253, 0.85)";
+                ctx.fillText(base.name, pt.x + 8, pt.y + 3);
+            });
+
+            // 5. Rysowanie punktów zapalnych (Hotspots)
+            const timePulse = (Date.now() % 1600) / 1600;
+            hotspots.forEach(spot => {
+                const pt = latLonToXY(spot.lat, spot.lon, w, h);
+                const color = spot.severity === 3 ? "#ef4444" : "#f59e0b";
+
+                // Pulsujący pierścień
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.globalAlpha = 1 - timePulse;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 6 + timePulse * spot.radius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+
+                // Środek punktu zapalnego
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.font = "10px 'JetBrains Mono'";
+                ctx.fillStyle = color;
+                ctx.fillText(spot.name, pt.x + 8, pt.y - 5);
+            });
+
+            // 6. Rysowanie trajektorii balistycznych i przechwytujących
+            trajectories.forEach((tr) => {
+                tr.progress += tr.speed;
+                if (tr.progress > 1) tr.progress = 0;
+
+                const start = latLonToXY(tr.fromLat, tr.fromLon, w, h);
+                const end = latLonToXY(tr.toLat, tr.toLon, w, h);
+
+                // Punkt kontrolny łuku balistycznego
+                const midX = (start.x + end.x) / 2;
+                const midY = Math.min(start.y, end.y) - 55;
+
+                // Rysuj pełną przewidywaną trajektorię przerywaną
+                ctx.save();
+                ctx.setLineDash([4, 4]);
+                ctx.strokeStyle = "rgba(239, 68, 68, 0.35)";
+                ctx.beginPath();
+                ctx.moveTo(start.x, start.y);
+                ctx.quadraticCurveTo(midX, midY, end.x, end.y);
+                ctx.stroke();
+                ctx.restore();
+
+                // Aktualna pozycja głowicy na krzywej Beziera
+                const t = tr.progress;
+                const curX = (1 - t) * (1 - t) * start.x + 2 * (1 - t) * t * midX + t * t * end.x;
+                const curY = (1 - t) * (1 - t) * start.y + 2 * (1 - t) * t * midY + t * t * end.y;
+
+                ctx.fillStyle = tr.color;
+                ctx.beginPath();
+                ctx.arc(curX, curY, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.font = "bold 9px 'JetBrains Mono'";
+                ctx.fillStyle = tr.color;
+                ctx.fillText(tr.label, curX + 7, curY - 4);
+            });
+
+            // 7. Skanowanie radarowe / linia przemiatania
+            radarAngle += 0.022;
+            if (radarMode === 'POLAR') {
+                const cx = w / 2;
+                const cy = h / 2;
+                const maxR = Math.min(cx, cy) * 0.88;
+                ctx.save();
+                ctx.strokeStyle = accentColor;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + maxR * Math.cos(radarAngle), cy + maxR * Math.sin(radarAngle));
+                ctx.stroke();
+                ctx.restore();
+            } else {
+                // Pionowa linia skanowania satelitarnego na mapie świata
+                const scanX = ((radarAngle * 45) % w);
+                const grad = ctx.createLinearGradient(scanX - 30, 0, scanX, 0);
+                grad.addColorStop(0, "transparent");
+                grad.addColorStop(1, "rgba(56, 189, 248, 0.16)");
+                ctx.fillStyle = grad;
+                ctx.fillRect(scanX - 30, 0, 30, h);
+            }
+
+            // 8. Impulsy zwiadowcze po kliknięciu użytkownika
+            for (let i = reconPulses.length - 1; i >= 0; i--) {
+                const p = reconPulses[i];
+                p.radius += 1.2;
+                p.alpha -= 0.018;
+
+                if (p.alpha <= 0) {
+                    reconPulses.splice(i, 1);
+                    continue;
+                }
+
+                ctx.strokeStyle = `rgba(56, 189, 248, ${p.alpha})`;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = `rgba(56, 189, 248, ${p.alpha})`;
+                ctx.font = "9px 'JetBrains Mono'";
+                ctx.fillText(p.label, p.x + 6, p.y - 6);
+            }
+
+            requestAnimationFrame(drawTacticalCanvas);
+        }
+
+        // ============================================================================
+        // 8. ZEGAR ZULU I INICJALIZACJA SYSTEMU
+        // ============================================================================
+        function updateZuluClock() {
+            document.getElementById('zulu-clock').textContent = getZuluTimeStr();
+        }
+
+        window.onload = function () {
+            resizeCanvas();
+            setInterval(updateZuluClock, 100);
+
+            // Renderowanie macierzy 9 plików MP3 użytkownika
+            renderAudioFilesMatrix();
+            updateLoadedMp3Badge();
+
+            // Inicjalizacja stanu początkowego DEFCON 5
+            applyDefconLevel(5, "Inicjalizacja systemu dowodzenia");
+            onSliderChange(true);
+            updateMapHudCounters();
+
+            // Wpisy startowe w dzienniku zdarzeń
+            addLog("Terminal dowodzenia STRATCOM/NORAD zainicjalizowany pomyślnie. Wszystkie systemy sensorowe ONLINE.", "INFO");
+            addLog("Moduł audio gotowy: obsługuje sekwencję 'defcon X alert.mp3' -> 'defcon X announcment.mp3' (poziom 5 tylko alarm). Kliknij 'WGRAJ MP3', aby wybrać pliki z urządzenia.", "INFO");
+
+            // Uruchomienie pętli animacji mapy taktycznej
+            requestAnimationFrame(drawTacticalCanvas);
+        };
+    </script>
+</body>
+</html>
