@@ -17,13 +17,13 @@
             --text-muted: #64748b;
             --cyan: #06b6d4;
             --cyan-glow: rgba(6, 182, 212, 0.25);
-            
+
             /* Oficjalne kolory kodowe DEFCON */
             --d5-color: #3b82f6; /* Niebieski - FADE OUT */
             --d4-color: #10b981; /* Zielony - DOUBLE TAKE */
             --d3-color: #eab308; /* Żółty - ROUND HOUSE */
             --d2-color: #f97316; /* Pomarańczowy - FAST PACE */
-            --d1-color: #ef4444; /* Czerwony/Biały - COCKED PISTOL */
+            --d1-color: #ef4444; /* Czerwony - COCKED PISTOL */
         }
 
         * {
@@ -36,7 +36,7 @@
 
         body {
             background-color: var(--bg-deep);
-            background-image: 
+            background-image:
                 radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.08) 0%, transparent 60%),
                 linear-gradient(rgba(27, 43, 66, 0.18) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(27, 43, 66, 0.18) 1px, transparent 1px);
@@ -47,7 +47,6 @@
             overflow-x: hidden;
         }
 
-        /* Subtelna siatka CRT */
         body::after {
             content: "";
             position: fixed;
@@ -197,14 +196,14 @@
         /* Siatka główna 3-kolumnowa */
         .main-grid {
             display: grid;
-            grid-template-columns: 380px 1fr 410px;
+            grid-template-columns: 370px 1fr 400px;
             gap: 14px;
             align-items: start;
         }
 
         @media (max-width: 1420px) {
             .main-grid {
-                grid-template-columns: 360px 1fr;
+                grid-template-columns: 350px 1fr;
             }
             .col-right {
                 grid-column: 1 / -1;
@@ -242,6 +241,7 @@
             padding-bottom: 8px;
             margin-bottom: 12px;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .panel-title {
@@ -462,7 +462,8 @@
             border: 1px solid var(--border-bright);
             border-radius: 6px;
             overflow: hidden;
-            height: 360px;
+            height: 400px;
+            width: 100%;
         }
 
         #tacticalCanvas {
@@ -482,13 +483,70 @@
             pointer-events: none;
             font-size: 0.7rem;
             color: #38bdf8;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .hud-tag {
-            background: rgba(4, 7, 11, 0.82);
+            background: rgba(4, 7, 11, 0.86);
             border: 1px solid var(--border-dim);
-            padding: 3px 8px;
+            padding: 4px 8px;
             border-radius: 3px;
+        }
+
+        .map-legend-bar {
+            position: absolute;
+            bottom: 8px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            font-size: 0.66rem;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .legend-items {
+            display: flex;
+            gap: 12px;
+            background: rgba(4, 7, 11, 0.86);
+            border: 1px solid var(--border-dim);
+            padding: 3px 9px;
+            border-radius: 3px;
+        }
+
+        .legend-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+
+        /* Baner aktywnego uderzenia SIOP na mapie */
+        .siop-active-banner {
+            display: none;
+            background: linear-gradient(90deg, rgba(185, 28, 28, 0.92), rgba(220, 38, 38, 0.95), rgba(185, 28, 28, 0.92));
+            border: 2px solid #fef08a;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.8);
+            animation: defcon1-pulse 0.7s infinite alternate;
+        }
+
+        .siop-active-banner.visible {
+            display: flex;
         }
 
         /* Scenariusze kryzysowe */
@@ -681,7 +739,7 @@
 
         .btn-siop-launch {
             width: 100%;
-            padding: 11px;
+            padding: 12px;
             font-size: 0.82rem;
             font-weight: 900;
             letter-spacing: 2px;
@@ -701,6 +759,71 @@
             cursor: pointer;
             box-shadow: 0 0 22px rgba(239, 68, 68, 0.85);
             animation: defcon1-pulse 0.8s infinite alternate;
+        }
+
+        /* MODAL POTWIERDZENIA STARTU SIOP */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 12, 0.85);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 16px;
+        }
+
+        .modal-backdrop.open {
+            display: flex;
+        }
+
+        .siop-modal {
+            background: #0b111c;
+            border: 2px solid #ef4444;
+            border-radius: 8px;
+            max-width: 540px;
+            width: 100%;
+            padding: 20px;
+            box-shadow: 0 0 50px rgba(239, 68, 68, 0.65);
+        }
+
+        .siop-modal-header {
+            color: #fef08a;
+            background: #7f1d1d;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: 900;
+            font-size: 0.9rem;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .siop-modal-body {
+            font-size: 0.78rem;
+            line-height: 1.5;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .siop-telemetry-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 12px 0;
+            background: #060a10;
+            border: 1px solid var(--border-dim);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+        }
+
+        .siop-modal-actions {
+            display: flex;
+            gap: 10px;
         }
 
         /* Bank Audio MP3 + IndexedDB */
@@ -822,13 +945,39 @@
 </head>
 <body>
 
+    <!-- MODAL POTWIERDZENIA WYSTRZELENIA ICBM (SIOP LAUNCH) -->
+    <div class="modal-backdrop" id="siopModalBackdrop">
+        <div class="siop-modal">
+            <div class="siop-modal-header">
+                <span>☢️ POTWIERDZENIE ROZKAZU STARTOWEGO SIOP (USSTRATCOM)</span>
+                <span>DEFCON 1</span>
+            </div>
+            <div class="siop-modal-body">
+                <p>Autoryzacja prezydencka <strong>Złotym Kodem SAS (<span id="modalSasCode">SAS-XXXXXX</span>)</strong>, zwolnienie blokady <strong>PAL</strong> oraz synchroniczny obrót kluczy <strong>ALFA + BRAVO</strong> zostały zweryfikowane pozytywnie.</p>
+                <div class="siop-telemetry-grid">
+                    <div>SIŁY WŁASNE (USA): <strong style="color:#38bdf8;">MINUTEMAN III & TRIDENT D5</strong></div>
+                    <div>KIERUNEK UDERZENIA: <strong style="color:#fde047;">USA / NATO ➔ CELE WROGA</strong></div>
+                    <div>BATERIE STARTOWE: <strong>MINOT, MALMSTROM, FE WARREN, SSBN</strong></div>
+                    <div>SEKTORY DOCELOWE: <strong>KOZIELSK, DOMBAROWSKIJ, UŻUR, WILIUCZYŃSK</strong></div>
+                </div>
+                <p style="color:#fca5a5; font-weight:700;">Czy potwierdzasz natychmiastowe wystrzelenie międzykontynentalnych pocisków balistycznych ICBM / SLBM?</p>
+            </div>
+            <div class="siop-modal-actions">
+                <button class="btn" onclick="closeSiopModal()" style="flex:1; justify-content:center;">ANULUJ ROZKAZ</button>
+                <button class="btn btn-red" onclick="confirmSiopLaunchExecution()" style="flex:2; justify-content:center; background:#dc2626; color:#fff; font-weight:900; border-color:#fef08a;">
+                    🚀 POTWIERDŹ START ICBM (EXECUTE SIOP)
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- GÓRNY PASEK DOWODZENIA -->
     <header class="top-bar">
         <div class="brand-block">
             <div class="norad-emblem">NORAD</div>
             <div class="brand-title">
                 <h1>USSTRATCOM // GLOBAL DEFCON COMMAND</h1>
-                <p>CHEYENNE MOUNTAIN COMPLEX • SYSTEM GOTOWOŚCI STRATEGICZNEJ</p>
+                <p>CHEYENNE MOUNTAIN COMPLEX • DOWÓDZTWO SIŁ STRATEGICZNYCH USA</p>
             </div>
         </div>
 
@@ -897,11 +1046,9 @@
 
                 <!-- Telemetria 5 rodzajów sił zbrojnych -->
                 <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:5px; letter-spacing:1px;">
-                    Telemetria Sił Strategicznych (5 Rodzajów):
+                    Telemetria Sił Strategicznych USA (5 Rodzajów):
                 </div>
-                <div class="branches-list" id="branchesContainer">
-                    <!-- Wypełniane dynamicznie -->
-                </div>
+                <div class="branches-list" id="branchesContainer"></div>
             </div>
 
             <!-- Suwaki czynników ryzyka geopolitycznego -->
@@ -973,21 +1120,35 @@
         <!-- KOLUMNA ŚRODKOWA: MAPA TAKTYCZNA / RADAR BMEWS + SCENARIUSZE + PROCEDURY NUKLEARNE -->
         <section class="col-center">
             <!-- Taktyczna Mapa Świata & Radar Polarny BMEWS -->
-            <div class="panel">
+            <div class="panel" id="tacticalMapPanel">
                 <div class="panel-header">
                     <span class="panel-title">Wizualizacja Taktyczna NORAD / Radar Polarny BMEWS</span>
-                    <div style="display:flex; gap:6px;">
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
                         <button class="btn btn-cyan" id="btnViewMap" onclick="setCanvasMode('map')" style="padding:4px 9px; font-size:0.68rem;">🌍 MAPA GLOBALNA</button>
                         <button class="btn" id="btnViewRadar" onclick="setCanvasMode('radar')" style="padding:4px 9px; font-size:0.68rem;">📡 RADAR POLARNY BMEWS</button>
-                        <button class="btn btn-red" onclick="spawnTestBallisticArc()" style="padding:4px 9px; font-size:0.68rem;">🚀 SYMULUJ ŚLAD ICBM</button>
+                        <button class="btn btn-amber" onclick="spawnUSStrikeArc()" style="padding:4px 9px; font-size:0.68rem;">🚀 WYSTRZEL ICBM (USA ➔ CELE)</button>
+                        <button class="btn btn-red" onclick="spawnHostileStrikeArc()" style="padding:4px 9px; font-size:0.68rem;">☄️ SYMULUJ ATAK WROGA</button>
                     </div>
                 </div>
 
-                <div class="map-wrapper">
-                    <canvas id="tacticalCanvas" width="820" height="360"></canvas>
+                <!-- Widoczny baner potwierdzający trwające uderzenie SIOP -->
+                <div class="siop-active-banner" id="siopActiveBanner">
+                    <span id="siopBannerText">☢️ ROZKAZ SIOP W REALIZACJI: POCISKI MINUTEMAN III & TRIDENT D5 W LOCIE DO CELÓW!</span>
+                    <button class="btn" onclick="clearAllMissiles()" style="padding:3px 8px; font-size:0.65rem; background:#09101a;">WYCZYŚĆ ŚLADY</button>
+                </div>
+
+                <div class="map-wrapper" id="mapWrapper">
+                    <canvas id="tacticalCanvas"></canvas>
                     <div class="map-overlay-hud">
-                        <div class="hud-tag" id="hudLeft">PROJEKCJA: GLOBALNA SIATKA TAKTYCZNA NORAD • SATELITY SBIRS: 4 ONLINE</div>
-                        <div class="hud-tag" id="hudRight">ŚLEDZONE OBIEKTY BALISTYCZNE: 0</div>
+                        <div class="hud-tag" id="hudLeft">PROJEKCJA: GLOBALNA MAPA WEKTOROWA NORAD • SATELITY SBIRS: 4 ONLINE</div>
+                        <div class="hud-tag" id="hudRight">ŚLEDZONE GŁOWICE W LOCIE: 0</div>
+                    </div>
+                    <div class="map-legend-bar">
+                        <div class="legend-items">
+                            <span><i class="legend-dot" style="background:#38bdf8;"></i>Bazy i Silosy USA / NATO (Siły Własne)</span>
+                            <span><i class="legend-dot" style="background:#facc15;"></i>Pociski USA (Minuteman/Trident)</span>
+                            <span><i class="legend-dot" style="background:#ef4444;"></i>Bazy i Pociski Przeciwnika</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1002,7 +1163,7 @@
                 <div class="scenario-grid">
                     <button class="scenario-btn" onclick="runScenario('adiz')">
                         <span class="sc-title">✈️ Naruszenie przestrzeni ADIZ</span>
-                        <span class="sc-sub">Przechwycenie bombowców Tu-160/B-52 przy granicy sektora arktycznego</span>
+                        <span class="sc-sub">Przechwycenie bombowców Tu-160 przy granicy sektora Alaski</span>
                     </button>
                     <button class="scenario-btn" onclick="runScenario('cyber')">
                         <span class="sc-title">💻 Cyberatak na sieć SCADA</span>
@@ -1013,8 +1174,8 @@
                         <span class="sc-sub">Utrata telemetrii podczerwieni nad sektorem syberyjskim</span>
                     </button>
                     <button class="scenario-btn" onclick="runScenario('icbm')">
-                        <span class="sc-title">🚀 Start obiektu ICBM / SLBM</span>
-                        <span class="sc-sub">Wykrycie pióropusza cieplnego rakiety wielogłowicowej MIRV</span>
+                        <span class="sc-title">🚨 Wykrycie ataku ICBM wroga</span>
+                        <span class="sc-sub">Alarm BMEWS: start pocisków przeciwnika w stronę USA</span>
                     </button>
                     <button class="scenario-btn" onclick="runScenario('peace')">
                         <span class="sc-title">🕊️ Szczyt pokojowy / Deeskalacja</span>
@@ -1027,7 +1188,7 @@
                 </div>
             </div>
 
-            <!-- Sekcja: Procedury Nuklearne i Łączność Kryzysowa (Punkt 3) -->
+            <!-- Sekcja: Procedury Nuklearne i Łączność Kryzysowa -->
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">Procedury Nuklearne, Gorąca Linia (MOLINK) & Szyfrogramy EAM</span>
@@ -1041,12 +1202,8 @@
                             <span>☎️ Gorąca Linia (MOLINK: Waszyngton ⇄ Moskwa/Pekin)</span>
                             <button class="btn btn-amber" onclick="triggerNewMolinkDilemma()" style="padding:2px 7px; font-size:0.64rem;">NOWA DEPESZA</button>
                         </div>
-                        <div class="molink-screen" id="molinkText">
-                            [DEPESZA #01] WYKRYTO ANOMALIĘ TERMICZNĄ W SEKTORZE SYBERYJSKIM. STRONA PRZECIWNA TWIERDZI, ŻE TO AWARIA GAZOCIĄGU. WYMAGANA DECYZJA OFICERA DYŻURNEGO:
-                        </div>
-                        <div class="dilemma-choices" id="molinkChoices">
-                            <!-- Przyciski A / B / C -->
-                        </div>
+                        <div class="molink-screen" id="molinkText"></div>
+                        <div class="dilemma-choices" id="molinkChoices"></div>
                     </div>
 
                     <!-- 2. Generator Szyfrogramów EAM / SKYKING -->
@@ -1109,7 +1266,7 @@
                         </div>
 
                         <button class="btn-siop-launch" id="btnSiopLaunch" onclick="executeSiopLaunch()">
-                            ☢️ AUTORYZUJ UDERZENIE ODWETOWE (SIOP LAUNCH) — WYMAGANY DEFCON 1, PAL I DWA KLUCZE
+                            ☢️ AUTORYZUJ UDERZENIE ODWETOWE USA (SIOP LAUNCH) — WYMAGANY DEFCON 1, PAL I DWA KLUCZE
                         </button>
                     </div>
                 </div>
@@ -1118,14 +1275,12 @@
 
         <!-- KOLUMNA PRAWA: BANK AUDIO MP3 (INDEXEDDB) + DZIENNIK ZDARZEŃ ZULU -->
         <section class="col-right">
-            <!-- Bank Audio DEFCON z trwałą bazą IndexedDB -->
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">Bank Audio DEFCON (IndexedDB)</span>
                     <span id="dbStatusBadge" style="font-size:0.68rem; color:#34d399;">PAMIĘĆ DB: 0/9 PLIKÓW</span>
                 </div>
 
-                <!-- Monitor sekwencji -->
                 <div class="audio-stage-banner">
                     <div>
                         <div style="font-size:0.65rem; color:var(--text-muted);">STATUS SEKWENCJI AUDIO:</div>
@@ -1134,7 +1289,6 @@
                     <span class="stage-pill" id="audioStagePill">BEZCZYNNY</span>
                 </div>
 
-                <!-- Sterowanie głośnością i wgrywaniem -->
                 <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; font-size:0.72rem;">
                     <span>Głośność: <strong id="volLabel">85%</strong></span>
                     <input type="range" id="volumeSlider" min="0" max="100" value="85" style="width:110px;" oninput="updateVolume(this.value)">
@@ -1150,10 +1304,7 @@
                     </button>
                 </div>
 
-                <!-- Lista 5 poziomów (9 plików MP3) -->
-                <div id="audioBankList">
-                    <!-- Wypełniane dynamicznie -->
-                </div>
+                <div id="audioBankList"></div>
 
                 <p style="font-size:0.64rem; color:var(--text-muted); margin-top:8px; line-height:1.35;">
                     💡 Po zmianie poziomu najpierw wybrzmiewa plik <code>defcon X alert.mp3</code>, a bezpośrednio po jego zakończeniu <code>defcon X announcment.mp3</code> (poziom 5 posiada wyłącznie alarm). Raz wgrane pliki zostają trwale zapamiętane w przeglądarce (`DEFCON_AudioStorage`).
@@ -1167,9 +1318,7 @@
                     <button class="btn" onclick="clearEventLog()" style="padding:3px 7px; font-size:0.65rem;">WYCZYŚĆ LOG</button>
                 </div>
 
-                <div class="log-container" id="eventLogContainer">
-                    <!-- Logi operacyjne -->
-                </div>
+                <div class="log-container" id="eventLogContainer"></div>
 
                 <div class="note-input-row">
                     <input type="text" id="officerNoteInput" class="note-input" placeholder="Wpisz notatkę oficera dyżurnego..." onkeydown="if(event.key==='Enter') addOfficerNote()">
@@ -1182,7 +1331,7 @@
 
     <script>
         /* =========================================================================
-           1. DANE KONFIGURACYJNE POZIOMÓW DEFCON I 5 RODZAJÓW SIŁ ZBROJNYCH
+           1. DANE KONFIGURACYJNE POZIOMÓW DEFCON I 5 RODZAJÓW SIŁ ZBROJNYCH USA
            ========================================================================= */
         const DEFCON_CONFIG = {
             5: {
@@ -1212,19 +1361,19 @@
             3: {
                 codename: "ROUND HOUSE",
                 color: "#eab308",
-                summary: "Podwyższona gotowość bojowa. Siły Powietrzne gotowe do mobilizacji w ciągu 15 minut. Cała komunikacja sztabowa przechodzi na utajnione protokoły szyfrowane.",
+                summary: "Podwyższona gotowość bojowa. Siły Powietrzne USA gotowe do mobilizacji w ciągu 15 minut. Cała komunikacja sztabowa przechodzi na utajnione protokoły szyfrowane.",
                 branches: [
                     { name: "Siły Rakietowe (ICBM Minuteman III)", status: "PODWÓJNE OBSADY SILOSÓW", color: "#eab308" },
                     { name: "Flota Podwodna (SSBN Ohio)", status: "WYJŚCIE Z PORTÓW", color: "#eab308" },
                     { name: "Lotnictwo Strategiczne (B-52H / B-2A)", status: "GOTOWOŚĆ 15 MIN", color: "#f97316" },
-                    { name: "Obrona Kosmiczna (NORAD / SBIRS)", status: " ŚLEDZENIE AKTYWNE", color: "#eab308" },
+                    { name: "Obrona Kosmiczna (NORAD / SBIRS)", status: "ŚLEDZENIE AKTYWNE", color: "#eab308" },
                     { name: "Cyberdowództwo (USCYBERCOM)", status: "OBRONA AKTYWNA", color: "#f97316" }
                 ]
             },
             2: {
                 codename: "FAST PACE",
                 color: "#f97316",
-                summary: "Krok od wojny nuklearnej. Siły zbrojne gotowe do rozmieszczenia i walki w mniej niż 6 godzin. Bombowce strategiczne na pasach startowych, E-4B Nightwatch w powietrzu.",
+                summary: "Krok od wojny nuklearnej. Siły zbrojne USA gotowe do rozmieszczenia i walki w mniej niż 6 godzin. Bombowce strategiczne na pasach startowych, E-4B Nightwatch w powietrzu.",
                 branches: [
                     { name: "Siły Rakietowe (ICBM Minuteman III)", status: "ŻYROSKOPY AKTYWNE", color: "#f97316" },
                     { name: "Flota Podwodna (SSBN Ohio)", status: "GŁĘBINA BOJOWA", color: "#f97316" },
@@ -1236,7 +1385,7 @@
             1: {
                 codename: "COCKED PISTOL",
                 color: "#ef4444",
-                summary: "MAKSYMALNA GOTOWOŚĆ BOJOWA. Bezpośrednie i nieuchronne zagrożenie wojną termojądrową. Siły strategiczne oczekują na autoryzację kodów PAL i rozkaz SIOP.",
+                summary: "MAKSYMALNA GOTOWOŚĆ BOJOWA. Bezpośrednie i nieuchronne zagrożenie wojną termojądrową. Siły strategiczne USA oczekują na autoryzację kodów PAL i rozkaz SIOP.",
                 branches: [
                     { name: "Siły Rakietowe (ICBM Minuteman III)", status: "GOTOWOŚĆ STARTOWA T-0", color: "#ef4444" },
                     { name: "Flota Podwodna (SSBN Ohio)", status: "LUKI STARTOWE OTWARTE", color: "#ef4444" },
@@ -1262,7 +1411,6 @@
         const STORE_NAME = "audio_files";
         let idbInstance = null;
 
-        // Dokładne nazwy plików użytkownika (9 plików MP3)
         const EXPECTED_FILES = {
             "defcon 1 alert.mp3": { level: 1, type: "alert" },
             "defcon 1 announcment.mp3": { level: 1, type: "announcment" },
@@ -1275,7 +1423,6 @@
             "defcon 5 alert.mp3": { level: 5, type: "alert" }
         };
 
-        // Pamięć podręczna ObjectURL: audioBank[level] = { alert: url, announcment: url, alertFromDB: bool, annFromDB: bool }
         const audioBank = {
             1: { alert: "./defcon 1 alert.mp3", announcment: "./defcon 1 announcment.mp3", alertLoaded: false, annLoaded: false },
             2: { alert: "./defcon 2 alert.mp3", announcment: "./defcon 2 announcment.mp3", alertLoaded: false, annLoaded: false },
@@ -1341,7 +1488,7 @@
                         processed++;
                         if (processed === keys.length) {
                             renderAudioBankList();
-                            logEvent(`Przywrócono ${ countLoadedMP3() }/9 plików MP3 z trwałej bazy IndexedDB.`, "ok");
+                            logEvent(`Przywrócono ${countLoadedMP3()}/9 plików MP3 z trwałej bazy IndexedDB.`, "ok");
                         }
                     };
                 });
@@ -1477,7 +1624,6 @@
             }
         }
 
-        // Awaryjny syntezator Web Audio API (gdy plik MP3 nie został jeszcze wgrany ani znaleziony lokalnie)
         function playFallbackSynthAlert(level, onDone) {
             if (isMuted) {
                 if (onDone) onDone();
@@ -1510,7 +1656,27 @@
             }
         }
 
-        // GŁÓWNA FUNKCJA SEKWENCYJNEGO ODTWARZANIA: ETAP 1 (ALARM) -> ETAP 2 (OGŁOSZENIE)
+        function playLaunchKlaxonSynth() {
+            if (isMuted) return;
+            try {
+                const actx = new (window.AudioContext || window.webkitAudioContext)();
+                for (let pulse = 0; pulse < 3; pulse++) {
+                    const osc = actx.createOscillator();
+                    const gain = actx.createGain();
+                    osc.connect(gain);
+                    gain.connect(actx.destination);
+                    osc.type = "sawtooth";
+                    const start = actx.currentTime + pulse * 0.45;
+                    osc.frequency.setValueAtTime(520, start);
+                    osc.frequency.linearRampToValueAtTime(960, start + 0.35);
+                    gain.gain.setValueAtTime(masterVolume * 0.28, start);
+                    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.4);
+                    osc.start(start);
+                    osc.stop(start + 0.4);
+                }
+            } catch (e) {}
+        }
+
         function playDefconSequence(level) {
             stopAllAudio();
             if (isMuted) return;
@@ -1529,8 +1695,6 @@
 
             const proceedToAnnouncement = () => {
                 if (session !== audioSequenceSession) return;
-
-                // Poziom 5 nie posiada słownego ogłoszenia
                 if (level === 5 || !entry.announcment) {
                     seqText.innerText = `DEFCON 5: Sekwencja alarmu zakończona.`;
                     stagePill.innerText = "ZAKOŃCZONO";
@@ -1594,13 +1758,11 @@
 
             document.getElementById("defconSummary").innerText = cfg.summary;
 
-            // Zakładki 1..5
             for (let i = 1; i <= 5; i++) {
                 const tab = document.getElementById(`tabDef${i}`);
                 tab.className = i === level ? `defcon-tab active-${i}` : "defcon-tab";
             }
 
-            // Telemetria 5 rodzajów sił zbrojnych
             const brContainer = document.getElementById("branchesContainer");
             brContainer.innerHTML = "";
             cfg.branches.forEach(b => {
@@ -1620,9 +1782,6 @@
                 }
                 if (level <= 2) {
                     generateEAM(level === 1);
-                }
-                if (level === 1) {
-                    spawnTestBallisticArc();
                 }
             }
 
@@ -1665,7 +1824,6 @@
             document.getElementById("slVal4").innerText = `${v4}%`;
             document.getElementById("slVal5").innerText = `${v5}%`;
 
-            // Ważony indeks napięcia
             const tension = Math.round(v1 * 0.15 + v2 * 0.18 + v3 * 0.17 + v4 * 0.22 + v5 * 0.28);
             document.getElementById("tensionBarFill").style.width = `${tension}%`;
 
@@ -1700,7 +1858,7 @@
 
         function runScenario(code) {
             if (code === "adiz") {
-                logEvent("INCYDENT ADIZ: Formacja bombowców strategicznych naruszyła sektor identyfikacji powietrznej.", "warn");
+                logEvent("INCYDENT ADIZ: Formacja bombowców strategicznych naruszyła sektor identyfikacji powietrznej Alaski.", "warn");
                 setSlidersValues([25, 65, 55, 45, 35]);
             } else if (code === "cyber") {
                 logEvent("ATAK CYBERNETYCZNY: Wykryto skoordynowane uderzenie na przemysłowe systemy SCADA i węzły łączności.", "warn");
@@ -1709,9 +1867,11 @@
                 logEvent("ALARM KOSMICZNY: Satelita wczesnego ostrzegania SBIRS-GEO oślepiony wiązką laserową nad Euroazją!", "crit");
                 setSlidersValues([70, 65, 80, 95, 75]);
             } else if (code === "icbm") {
-                logEvent("ALARM BALISTYCZNY BMEWS: Wykryto mnogie sygnatury termiczne startu pocisków ICBM!", "crit");
+                logEvent("ALARM BALISTYCZNY BMEWS: Wykryto start wrogich pocisków ICBM z głębi Euroazji w kierunku USA!", "crit");
                 setSlidersValues([90, 90, 95, 100, 100]);
-                spawnTestBallisticArc();
+                for (let i = 0; i < 4; i++) {
+                    setTimeout(() => spawnHostileStrikeArc(), i * 300);
+                }
             } else if (code === "peace") {
                 logEvent("POROZUMIENIE DYPLOMATYCZNE: Podpisano protokół deeskalacji i wznowiono inspekcje nuklearne.", "ok");
                 setSlidersValues([5, 8, 10, 5, 5]);
@@ -1872,7 +2032,7 @@
             badge.style.background = "rgba(239, 68, 68, 0.25)";
             badge.style.color = "#fca5a5";
             badge.style.borderColor = "#ef4444";
-            logEvent("PERMISSIVE ACTION LINK (PAL): Blokada głowic termojądrowych została zwolniona!", "crit");
+            logEvent("PERMISSIVE ACTION LINK (PAL): Blokada głowic termojądrowych USA została zwolniona!", "crit");
             evaluateSiopReadiness();
         }
 
@@ -1890,7 +2050,6 @@
                 btn.className = "btn btn-amber";
             }
 
-            // Sprawdź czy oba klucze przekręcono w oknie 3000 ms
             if (keyAlphaTime > 0 && keyBravoTime > 0 && Math.abs(keyAlphaTime - keyBravoTime) <= 3000) {
                 twoManSynced = true;
                 clearInterval(syncInterval);
@@ -1903,7 +2062,6 @@
                 return;
             }
 
-            // Uruchom pasek odliczający 3 sekundy na drugi klucz
             clearInterval(syncInterval);
             const startTime = now;
             syncInterval = setInterval(() => {
@@ -1940,100 +2098,263 @@
             }
         }
 
+        // Otwiera widoczny Modal potwierdzenia wystrzelenia ICBM
         function executeSiopLaunch() {
             if (!(currentDefcon === 1 && isPalUnlocked && twoManSynced)) {
                 logEvent("ODMOWA AUTORYZACJI SIOP: Wymagany poziom DEFCON 1, odblokowana blokada PAL oraz zsynchronizowane 2 klucze!", "warn");
+                alert("ODMOWA AUTORYZACJI SIOP:\n1. Ustaw poziom DEFCON 1\n2. Zerwij plombę z karty 'The Biscuit' i odblokuj PAL\n3. Przekręć klucze ALFA i BRAVO w oknie 3 sekund.");
                 return;
             }
-            logEvent("☢️ SIOP LAUNCH EXECUTED: Wysłano rozkaz startu pocisków Minuteman III i Trident II D5 do wszystkich jednostek!", "crit");
-            for (let i = 0; i < 6; i++) {
-                setTimeout(() => spawnTestBallisticArc(), i * 350);
-            }
+            document.getElementById("modalSasCode").innerText = generatedGoldCode || "SAS-AUTH";
+            document.getElementById("siopModalBackdrop").classList.add("open");
+        }
+
+        function closeSiopModal() {
+            document.getElementById("siopModalBackdrop").classList.remove("open");
+        }
+
+        function confirmSiopLaunchExecution() {
+            closeSiopModal();
+
+            // Pokaż wyraźny czerwono-złoty baner nad mapą i przewiń ekran do mapy taktycznej
+            const banner = document.getElementById("siopActiveBanner");
+            banner.classList.add("visible");
+            document.getElementById("tacticalMapPanel").scrollIntoView({ behavior: "smooth", block: "center" });
+
+            playLaunchKlaxonSynth();
+            logEvent("☢️ SIOP LAUNCH POTWIERDZONY: Rozkaz startu pocisków Minuteman III (USA) i Trident II D5 (SSBN) wysłany! Pociski w drodze do celów w Rosji/Euroazji!", "crit");
+
+            // Wystrzel pełną salwę 8 amerykańskich rakiet z silosów USA i okrętów SSBN w stronę celów wroga
+            const usBases = STRATEGIC_BASES.filter(b => b.type === "allied" && b.canLaunch);
+            const ruTargets = STRATEGIC_BASES.filter(b => b.type === "hostile");
+
+            let delay = 0;
+            usBases.forEach((src) => {
+                ruTargets.forEach((dst, idx) => {
+                    if ((idx + delay) % 2 === 0) {
+                        setTimeout(() => {
+                            spawnSpecificArc(src, dst, "us");
+                        }, delay * 350);
+                        delay++;
+                    }
+                });
+            });
         }
 
         /* =========================================================================
-           6. WIZUALIZACJA TAKTYCZNA CANVAS (MAPA GLOBALNA NORAD + RADAR POLARNY BMEWS)
+           6. WIZUALIZACJA TAKTYCZNA CANVAS (DOKŁADNA MAPA ŚWIATA + OKRĄGŁY RADAR BMEWS)
            ========================================================================= */
         const canvas = document.getElementById("tacticalCanvas");
         const ctx = canvas.getContext("2d");
         let canvasMode = "map"; // 'map' | 'radar'
         let radarAngle = 0;
+        let logicalWidth = 820;
+        let logicalHeight = 400;
 
+        // Automatyczne dopasowanie rozdzielczości Canvas 1:1 (brak ściśnięcia radaru!)
+        function resizeCanvasToContainer() {
+            const wrapper = document.getElementById("mapWrapper");
+            if (!wrapper) return;
+            const rect = wrapper.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            logicalWidth = Math.max(300, Math.floor(rect.width));
+            logicalHeight = Math.max(260, Math.floor(rect.height));
+
+            canvas.width = logicalWidth * dpr;
+            canvas.height = logicalHeight * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        window.addEventListener("resize", resizeCanvasToContainer);
+
+        // Bazy strategiczne USA/NATO (Siły Własne) oraz cele przeciwnika (Rosja/Euroazja)
+        // Współrzędne znormalizowane [x: 0..1 (długość geogr.), y: 0..1 (szerokość geogr.)]
         const STRATEGIC_BASES = [
-            { name: "NORAD Cheyenne Mtn", x: 0.21, y: 0.36, type: "allied" },
-            { name: "Thule BMEWS", x: 0.34, y: 0.14, type: "allied" },
-            { name: "RAF Fylingdales", x: 0.48, y: 0.27, type: "allied" },
-            { name: "Ramstein AB", x: 0.52, y: 0.31, type: "allied" },
-            { name: "Clear AFS Alaska", x: 0.11, y: 0.18, type: "allied" },
-            { name: "Guam Andersen", x: 0.85, y: 0.54, type: "allied" },
-            { name: "Kozielsk ICBM", x: 0.59, y: 0.28, type: "hostile" },
-            { name: "Dombarowskij", x: 0.66, y: 0.33, type: "hostile" },
-            { name: "Użur Silos", x: 0.74, y: 0.29, type: "hostile" },
-            { name: "Wiliuczyńsk SSBN", x: 0.88, y: 0.26, type: "hostile" }
+            // USA & NATO (Siły Własne)
+            { name: "NORAD / FE Warren ICBM", x: 0.205, y: 0.345, type: "allied", canLaunch: true, missilePrefix: "MINUTEMAN-III" },
+            { name: "Minot AFB ICBM", x: 0.218, y: 0.285, type: "allied", canLaunch: true, missilePrefix: "MINUTEMAN-III" },
+            { name: "Malmstrom AFB ICBM", x: 0.185, y: 0.295, type: "allied", canLaunch: true, missilePrefix: "MINUTEMAN-III" },
+            { name: "Clear SFS Alaska", x: 0.095, y: 0.175, type: "allied", canLaunch: false },
+            { name: "Pituffik (Thule) BMEWS", x: 0.325, y: 0.115, type: "allied", canLaunch: false },
+            { name: "SSBN Ohio (Atlantyk)", x: 0.365, y: 0.330, type: "allied", canLaunch: true, missilePrefix: "TRIDENT-D5" },
+            { name: "SSBN Ohio (Pacyfik)", x: 0.115, y: 0.370, type: "allied", canLaunch: true, missilePrefix: "TRIDENT-D5" },
+            { name: "RAF Fylingdales", x: 0.488, y: 0.245, type: "allied", canLaunch: false },
+            { name: "Ramstein AB", x: 0.522, y: 0.278, type: "allied", canLaunch: false },
+            { name: "Guam Andersen", x: 0.865, y: 0.515, type: "allied", canLaunch: true, missilePrefix: "B52-ALCM" },
+
+            // Bazy Przeciwnika (Cele SIOP / Źródła ataku wroga)
+            { name: "Kozielsk ICBM", x: 0.598, y: 0.255, type: "hostile", canLaunch: true, missilePrefix: "JARS-RS24" },
+            { name: "Dombarowskij R-36M2", x: 0.665, y: 0.292, type: "hostile", canLaunch: true, missilePrefix: "SARMAT-RS28" },
+            { name: "Użur Silos", x: 0.748, y: 0.268, type: "hostile", canLaunch: true, missilePrefix: "SARMAT-RS28" },
+            { name: "Plesieck Cosmodrome", x: 0.612, y: 0.178, type: "hostile", canLaunch: true, missilePrefix: "TOPOL-M" },
+            { name: "Wiliuczyńsk SSBN", x: 0.892, y: 0.252, type: "hostile", canLaunch: true, missilePrefix: "BUŁAWA-SLBM" }
         ];
 
-        // Uproszczone obrysy kontynentów dla wektorowej mapy NORAD
-        const CONTINENTS_POLYGONS = [
-            // Ameryka Północna
-            [[0.08,0.18],[0.28,0.14],[0.33,0.28],[0.25,0.46],[0.18,0.48],[0.12,0.34]],
+        // Dokładne obrysy kontynentów świata [x: 0..1, y: 0..1] w odwzorowaniu walcowym
+        const WORLD_POLYGONS = [
+            // Ameryka Północna (Alaska, Kanada, USA, Meksyk, Ameryka Środkowa)
+            [
+                [0.04,0.16],[0.08,0.13],[0.13,0.13],[0.18,0.15],[0.23,0.14],[0.27,0.17],
+                [0.25,0.22],[0.31,0.23],[0.33,0.27],[0.29,0.31],[0.27,0.36],[0.25,0.41],
+                [0.23,0.43],[0.22,0.40],[0.19,0.41],[0.18,0.45],[0.22,0.49],[0.25,0.52],
+                [0.23,0.53],[0.19,0.49],[0.15,0.43],[0.13,0.36],[0.12,0.29],[0.10,0.23],
+                [0.06,0.21],[0.03,0.19]
+            ],
+            // Grenlandia
+            [
+                [0.31,0.08],[0.38,0.06],[0.43,0.09],[0.41,0.16],[0.36,0.20],[0.33,0.16]
+            ],
             // Ameryka Południowa
-            [[0.25,0.52],[0.35,0.58],[0.32,0.84],[0.27,0.86],[0.24,0.65]],
-            // Europa + Azja
-            [[0.46,0.20],[0.65,0.15],[0.89,0.20],[0.86,0.46],[0.73,0.52],[0.60,0.44],[0.47,0.36]],
+            [
+                [0.26,0.52],[0.30,0.51],[0.35,0.55],[0.39,0.60],[0.39,0.66],[0.36,0.73],
+                [0.32,0.82],[0.30,0.89],[0.28,0.87],[0.27,0.77],[0.25,0.66],[0.24,0.58]
+            ],
+            // Wielka Brytania i Irlandia
+            [
+                [0.468,0.22],[0.488,0.215],[0.494,0.255],[0.472,0.262]
+            ],
+            // Euroazja (Europa Zachodnia, Skandynawia, Morze Śródziemne, Rosja, Bliski Wschód, Indie, Chiny, Kamczatka)
+            [
+                [0.46,0.33],[0.46,0.29],[0.49,0.27],[0.52,0.25],[0.51,0.20],[0.53,0.14],
+                [0.57,0.12],[0.60,0.16],[0.66,0.13],[0.74,0.11],[0.83,0.12],[0.92,0.15],
+                [0.95,0.20],[0.91,0.27],[0.88,0.23],[0.86,0.28],[0.85,0.34],[0.82,0.38],
+                [0.84,0.42],[0.81,0.47],[0.78,0.49],[0.76,0.55],[0.74,0.49],[0.71,0.47],
+                [0.69,0.53],[0.66,0.46],[0.63,0.44],[0.60,0.48],[0.57,0.44],[0.56,0.38],
+                [0.53,0.36],[0.51,0.34],[0.49,0.35]
+            ],
             // Afryka
-            [[0.46,0.42],[0.60,0.45],[0.58,0.76],[0.50,0.78],[0.44,0.55]],
+            [
+                [0.45,0.37],[0.50,0.36],[0.55,0.38],[0.57,0.44],[0.61,0.49],[0.59,0.57],
+                [0.57,0.66],[0.55,0.76],[0.52,0.79],[0.49,0.72],[0.48,0.62],[0.45,0.54],
+                [0.42,0.48],[0.43,0.41]
+            ],
+            // Madagaskar
+            [
+                [0.605,0.66],[0.622,0.65],[0.618,0.73],[0.600,0.72]
+            ],
+            // Japonia
+            [
+                [0.865,0.32],[0.882,0.34],[0.875,0.39],[0.858,0.38]
+            ],
+            // Archipelag Malajski / Indonezja
+            [
+                [0.76,0.56],[0.81,0.56],[0.85,0.58],[0.84,0.61],[0.77,0.60]
+            ],
             // Australia
-            [[0.77,0.68],[0.88,0.68],[0.87,0.82],[0.76,0.80]]
+            [
+                [0.77,0.66],[0.83,0.64],[0.88,0.66],[0.90,0.73],[0.88,0.80],[0.82,0.81],
+                [0.77,0.77],[0.75,0.71]
+            ],
+            // Nowa Zelandia
+            [
+                [0.93,0.80],[0.95,0.79],[0.94,0.85],[0.92,0.84]
+            ]
         ];
 
         const ballisticArcs = [];
+        const impactExplosions = [];
 
         function setCanvasMode(mode) {
             canvasMode = mode;
             document.getElementById("btnViewMap").className = mode === "map" ? "btn btn-cyan" : "btn";
             document.getElementById("btnViewRadar").className = mode === "radar" ? "btn btn-cyan" : "btn";
             document.getElementById("hudLeft").innerText = mode === "map"
-                ? "PROJEKCJA: GLOBALNA SIATKA TAKTYCZNA NORAD • SATELITY SBIRS: 4 ONLINE"
-                : "PROJEKCJA: POLARNY RADAR ARKTYCZNY BMEWS (SEKTOR PÓŁNOCNY)";
+                ? "PROJEKCJA: GLOBALNA MAPA WEKTOROWA NORAD • SATELITY SBIRS: 4 ONLINE"
+                : "PROJEKCJA: POLARNY RADAR ARKTYCZNY BMEWS (BIEGUN PÓŁNOCNY 90°N)";
         }
 
-        function spawnTestBallisticArc() {
-            const hostileBases = STRATEGIC_BASES.filter(b => b.type === "hostile");
-            const alliedBases = STRATEGIC_BASES.filter(b => b.type === "allied");
-            const src = hostileBases[Math.floor(Math.random() * hostileBases.length)];
-            const dst = alliedBases[Math.floor(Math.random() * alliedBases.length)];
-
+        function spawnSpecificArc(src, dst, side) {
             ballisticArcs.push({
                 x1: src.x, y1: src.y,
                 x2: dst.x, y2: dst.y,
+                srcName: src.name,
+                dstName: dst.name,
+                side: side, // 'us' | 'hostile'
                 progress: 0,
-                speed: 0.004 + Math.random() * 0.003,
-                label: `ICBM-${Math.floor(100 + Math.random() * 900)}`
+                // Wolniejszy, dobrze widoczny czas lotu (~15 sekund)
+                speed: 0.0011 + Math.random() * 0.0005,
+                label: `${src.missilePrefix || 'ICBM'}-${Math.floor(10 + Math.random() * 89)}`
             });
-            document.getElementById("hudRight").innerText = `ŚLEDZONE OBIEKTY BALISTYCZNE: ${ballisticArcs.length}`;
+            updateHudCounter();
+        }
+
+        // Wystrzelenie pocisku USA ➔ Cele w Rosji
+        function spawnUSStrikeArc() {
+            const usLaunchers = STRATEGIC_BASES.filter(b => b.type === "allied" && b.canLaunch);
+            const ruTargets = STRATEGIC_BASES.filter(b => b.type === "hostile");
+            const src = usLaunchers[Math.floor(Math.random() * usLaunchers.length)];
+            const dst = ruTargets[Math.floor(Math.random() * ruTargets.length)];
+
+            spawnSpecificArc(src, dst, "us");
+            logEvent(`STRATCOM LAUNCH: Wystrzelono ${src.missilePrefix} z bazy ${src.name} ➔ cel: ${dst.name}.`, "warn");
+        }
+
+        // Symulacja ataku wroga (Rosja ➔ USA)
+        function spawnHostileStrikeArc() {
+            const hostileLaunchers = STRATEGIC_BASES.filter(b => b.type === "hostile");
+            const usTargets = STRATEGIC_BASES.filter(b => b.type === "allied");
+            const src = hostileLaunchers[Math.floor(Math.random() * hostileLaunchers.length)];
+            const dst = usTargets[Math.floor(Math.random() * usTargets.length)];
+
+            spawnSpecificArc(src, dst, "hostile");
+            logEvent(`ALARM BMEWS: Wykryto wrogi pocisk ${src.missilePrefix} z ${src.name} lecący w stronę ${dst.name}!`, "crit");
+        }
+
+        function clearAllMissiles() {
+            ballisticArcs.length = 0;
+            impactExplosions.length = 0;
+            document.getElementById("siopActiveBanner").classList.remove("visible");
+            updateHudCounter();
+        }
+
+        function updateHudCounter() {
+            const usCount = ballisticArcs.filter(a => a.side === "us").length;
+            const hostCount = ballisticArcs.filter(a => a.side === "hostile").length;
+            document.getElementById("hudRight").innerText = `GŁOWICE W LOCIE: ${ballisticArcs.length} (USA: ${usCount} | WRÓG: ${hostCount})`;
+        }
+
+        // Konwersja współrzędnych mapy [x,y] na współrzędne polarne wokół Bieguna Północnego (dla Radaru BMEWS)
+        function mapCoordToPolar(nx, ny, cx, cy, maxR) {
+            const lon = (nx - 0.5) * Math.PI * 2 - Math.PI / 2;
+            const dist = Math.min(0.95, Math.max(0.06, ny * 1.18)) * maxR;
+            return {
+                x: cx + Math.cos(lon) * dist,
+                y: cy + Math.sin(lon) * dist
+            };
         }
 
         function drawTacticalCanvas() {
-            const w = canvas.width;
-            const h = canvas.height;
+            const w = logicalWidth;
+            const h = logicalHeight;
             ctx.clearRect(0, 0, w, h);
 
             if (canvasMode === "map") {
-                // Siatka geograficzna
-                ctx.strokeStyle = "rgba(30, 58, 95, 0.35)";
+                // 1. Siatka kartograficzna (południki i równoleżniki)
+                ctx.strokeStyle = "rgba(30, 58, 95, 0.28)";
                 ctx.lineWidth = 1;
-                for (let x = 0; x < w; x += 50) {
+                for (let i = 1; i < 12; i++) {
+                    const x = (w / 12) * i;
                     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
                 }
-                for (let y = 0; y < h; y += 45) {
+                for (let j = 1; j < 6; j++) {
+                    const y = (h / 6) * j;
                     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
                 }
 
-                // Wektorowe kontynenty
-                ctx.fillStyle = "rgba(14, 116, 144, 0.14)";
-                ctx.strokeStyle = "rgba(6, 182, 212, 0.5)";
-                ctx.lineWidth = 1.2;
-                CONTINENTS_POLYGONS.forEach(poly => {
+                // Równik i koło podbiegunowe
+                ctx.strokeStyle = "rgba(56, 189, 248, 0.22)";
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(0, h * 0.55); ctx.lineTo(w, h * 0.55); // Równik
+                ctx.moveTo(0, h * 0.16); ctx.lineTo(w, h * 0.16); // Koło podbiegunowe północne
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // 2. Szczegółowe kontynenty świata
+                ctx.fillStyle = "rgba(14, 116, 144, 0.22)";
+                ctx.strokeStyle = "rgba(6, 182, 212, 0.65)";
+                ctx.lineWidth = 1.3;
+                WORLD_POLYGONS.forEach(poly => {
                     ctx.beginPath();
                     poly.forEach((pt, idx) => {
                         if (idx === 0) ctx.moveTo(pt[0] * w, pt[1] * h);
@@ -2044,19 +2365,19 @@
                     ctx.stroke();
                 });
 
-                // Orbita sinusoidalna satelitów SBIRS
-                ctx.strokeStyle = "rgba(234, 179, 8, 0.3)";
+                // 3. Orbita satelitów wczesnego ostrzegania SBIRS
+                ctx.strokeStyle = "rgba(234, 179, 8, 0.28)";
                 ctx.setLineDash([4, 4]);
                 ctx.beginPath();
-                for (let x = 0; x < w; x += 6) {
-                    const y = h * 0.5 + Math.sin((x / w) * Math.PI * 2 + radarAngle) * (h * 0.28);
+                for (let x = 0; x <= w; x += 6) {
+                    const y = h * 0.48 + Math.sin((x / w) * Math.PI * 2 + radarAngle * 0.6) * (h * 0.26);
                     if (x === 0) ctx.moveTo(x, y);
                     else ctx.lineTo(x, y);
                 }
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                // Bazy NORAD i przeciwnika
+                // 4. Bazy strategiczne USA/NATO oraz przeciwnika
                 STRATEGIC_BASES.forEach(b => {
                     const bx = b.x * w;
                     const by = b.y * h;
@@ -2065,23 +2386,41 @@
                     ctx.arc(bx, by, 4, 0, Math.PI * 2);
                     ctx.fill();
 
+                    ctx.strokeStyle = b.type === "allied" ? "rgba(56,189,248,0.45)" : "rgba(239,68,68,0.45)";
+                    ctx.beginPath();
+                    ctx.arc(bx, by, 7, 0, Math.PI * 2);
+                    ctx.stroke();
+
                     ctx.font = "10px monospace";
-                    ctx.fillStyle = "rgba(226, 232, 240, 0.8)";
-                    ctx.fillText(b.name, bx + 7, by + 3);
+                    ctx.fillStyle = b.type === "allied" ? "#bae6fd" : "#fecaca";
+                    ctx.fillText(b.name, bx + 8, by + 3);
                 });
 
-                // Trajektorie balistyczne ICBM
+                // 5. Trajektorie balistyczne ICBM / SLBM
                 ballisticArcs.forEach((arc) => {
                     const sx = arc.x1 * w, sy = arc.y1 * h;
                     const ex = arc.x2 * w, ey = arc.y2 * h;
                     const cx = (sx + ex) / 2;
-                    const cy = Math.min(sy, ey) - 95;
+                    // Łuk balistyczny ponad Arktyką
+                    const cy = Math.min(sy, ey) - h * 0.28;
 
-                    // Ślad trajektorii
-                    ctx.strokeStyle = "rgba(239, 68, 68, 0.85)";
-                    ctx.lineWidth = 1.8;
+                    const isUS = arc.side === "us";
+
+                    // Planowana ścieżka (przerywana)
+                    ctx.strokeStyle = isUS ? "rgba(56, 189, 248, 0.25)" : "rgba(239, 68, 68, 0.25)";
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([3, 3]);
                     ctx.beginPath();
-                    for (let t = 0; t <= arc.progress; t += 0.02) {
+                    ctx.moveTo(sx, sy);
+                    ctx.quadraticCurveTo(cx, cy, ex, ey);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Przebyty ślad rakiety (ciągły)
+                    ctx.strokeStyle = isUS ? "#38bdf8" : "#ef4444";
+                    ctx.lineWidth = 2.2;
+                    ctx.beginPath();
+                    for (let t = 0; t <= arc.progress; t += 0.015) {
                         const px = (1 - t) * (1 - t) * sx + 2 * (1 - t) * t * cx + t * t * ex;
                         const py = (1 - t) * (1 - t) * sy + 2 * (1 - t) * t * cy + t * t * ey;
                         if (t === 0) ctx.moveTo(px, py);
@@ -2089,78 +2428,144 @@
                     }
                     ctx.stroke();
 
-                    // Głowica MIRV
+                    // Głowica MIRV w locie
                     const t = arc.progress;
                     const hx = (1 - t) * (1 - t) * sx + 2 * (1 - t) * t * cx + t * t * ex;
                     const hy = (1 - t) * (1 - t) * sy + 2 * (1 - t) * t * cy + t * t * ey;
 
-                    ctx.fillStyle = "#fef08a";
+                    ctx.fillStyle = isUS ? "#fef08a" : "#fca5a5";
                     ctx.beginPath();
-                    ctx.arc(hx, hy, 4, 0, Math.PI * 2);
+                    ctx.arc(hx, hy, 4.5, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.fillStyle = "#fca5a5";
-                    ctx.font = "10px monospace";
-                    ctx.fillText(arc.label, hx + 6, hy - 5);
+
+                    const remainSec = Math.max(0, Math.ceil((1 - arc.progress) / (arc.speed * 60)));
+                    ctx.fillStyle = isUS ? "#fef08a" : "#fecaca";
+                    ctx.font = "bold 10px monospace";
+                    ctx.fillText(`${arc.label} [T-${remainSec}s]`, hx + 7, hy - 6);
                 });
 
+                // 6. Znaczniki uderzeń / eksplozji w celach
+                for (let i = impactExplosions.length - 1; i >= 0; i--) {
+                    const imp = impactExplosions[i];
+                    const ix = imp.x * w;
+                    const iy = imp.y * h;
+                    ctx.strokeStyle = `rgba(254, 240, 138, ${1 - imp.age})`;
+                    ctx.fillStyle = `rgba(239, 68, 68, ${(1 - imp.age) * 0.45})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(ix, iy, 6 + imp.age * 28, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    imp.age += 0.008;
+                    if (imp.age >= 1) impactExplosions.splice(i, 1);
+                }
+
             } else {
-                // TRYB RADARU POLARNEGO BMEWS
+                // TRYB RADARU POLARNEGO BMEWS (Idealny okrąg 1:1 wokół Bieguna Północnego)
                 const cx = w / 2;
                 const cy = h / 2;
-                const maxR = Math.min(w, h) * 0.44;
+                const maxR = Math.min(w, h) * 0.43;
 
-                ctx.strokeStyle = "rgba(16, 185, 129, 0.4)";
+                // Podkład kontynentów w projekcji polarnej
+                ctx.fillStyle = "rgba(16, 185, 129, 0.12)";
+                ctx.strokeStyle = "rgba(16, 185, 129, 0.35)";
                 ctx.lineWidth = 1;
+                WORLD_POLYGONS.slice(0, 6).forEach(poly => {
+                    ctx.beginPath();
+                    poly.forEach((pt, idx) => {
+                        const p = mapCoordToPolar(pt[0], pt[1], cx, cy, maxR);
+                        if (idx === 0) ctx.moveTo(p.x, p.y);
+                        else ctx.lineTo(p.x, p.y);
+                    });
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                });
+
+                // Pierścienie odległościowe radaru
+                ctx.strokeStyle = "rgba(16, 185, 129, 0.55)";
+                ctx.lineWidth = 1.2;
                 [0.25, 0.5, 0.75, 1].forEach(r => {
                     ctx.beginPath();
                     ctx.arc(cx, cy, maxR * r, 0, Math.PI * 2);
                     ctx.stroke();
                 });
 
-                ctx.beginPath();
-                ctx.moveTo(cx - maxR, cy); ctx.lineTo(cx + maxR, cy);
-                ctx.moveTo(cx, cy - maxR); ctx.lineTo(cx, cy + maxR);
-                ctx.stroke();
+                // Osie azymutu (co 45 stopni)
+                for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(cx + Math.cos(a) * maxR, cy + Math.sin(a) * maxR);
+                    ctx.stroke();
+                }
+
+                // Etykiety sektorów polarnych
+                ctx.fillStyle = "#34d399";
+                ctx.font = "10px monospace";
+                ctx.fillText("0° (EUROPA / NATO)", cx - 48, cy - maxR - 6);
+                ctx.fillText("180° (PACYFIK / ALASKA)", cx - 60, cy + maxR + 14);
+                ctx.fillText("90°E (ROSJA / SYBERIA)", cx + maxR + 8, cy + 4);
+                ctx.fillText("90°W (USA / KANADA)", cx - maxR - 118, cy + 4);
+
+                // Bazy na radarze polarnym
+                STRATEGIC_BASES.forEach(b => {
+                    const p = mapCoordToPolar(b.x, b.y, cx, cy, maxR);
+                    ctx.fillStyle = b.type === "allied" ? "#38bdf8" : "#ef4444";
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+                });
 
                 // Wiązka skanująca BMEWS
-                const grad = ctx.createRadialGradient(cx, cy, 5, cx, cy, maxR);
+                const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, maxR);
                 grad.addColorStop(0, "rgba(16, 185, 129, 0.45)");
-                grad.addColorStop(1, "rgba(16, 185, 129, 0.0)");
+                grad.addColorStop(1, "rgba(16, 185, 129, 0.05)");
 
                 ctx.fillStyle = grad;
                 ctx.beginPath();
                 ctx.moveTo(cx, cy);
-                ctx.arc(cx, cy, maxR, radarAngle, radarAngle + 0.45);
+                ctx.arc(cx, cy, maxR, radarAngle, radarAngle + 0.48);
                 ctx.closePath();
                 ctx.fill();
 
-                // Echa radarowe
-                ballisticArcs.forEach((arc, i) => {
-                    const ang = (i * 1.3) + arc.progress * 2;
-                    const dist = (1 - arc.progress * 0.7) * maxR;
-                    const bx = cx + Math.cos(ang) * dist;
-                    const by = cy + Math.sin(ang) * dist;
+                // Ślady i głowice pocisków w rzucie polarnym (przez Biegun Północny!)
+                ballisticArcs.forEach((arc) => {
+                    const p1 = mapCoordToPolar(arc.x1, arc.y1, cx, cy, maxR);
+                    const p2 = mapCoordToPolar(arc.x2, arc.y2, cx, cy, maxR);
+                    const isUS = arc.side === "us";
 
-                    ctx.fillStyle = "#ef4444";
+                    ctx.strokeStyle = isUS ? "#38bdf8" : "#ef4444";
+                    ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.arc(bx, by, 4.5, 0, Math.PI * 2);
+                    ctx.moveTo(p1.x, p1.y);
+                    const curX = p1.x + (p2.x - p1.x) * arc.progress;
+                    const curY = p1.y + (p2.y - p1.y) * arc.progress;
+                    ctx.lineTo(curX, curY);
+                    ctx.stroke();
+
+                    ctx.fillStyle = isUS ? "#fef08a" : "#fca5a5";
+                    ctx.beginPath();
+                    ctx.arc(curX, curY, 4.5, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.fillStyle = "#fca5a5";
                     ctx.font = "10px monospace";
-                    ctx.fillText(arc.label, bx + 7, by + 3);
+                    ctx.fillText(arc.label, curX + 6, curY - 4);
                 });
             }
 
-            // Aktualizacja postępu rakiet
+            // Aktualizacja postępu rakiet i rejestrowanie trafień
             for (let i = ballisticArcs.length - 1; i >= 0; i--) {
-                ballisticArcs[i].progress += ballisticArcs[i].speed;
-                if (ballisticArcs[i].progress >= 1) {
+                const arc = ballisticArcs[i];
+                arc.progress += arc.speed;
+                if (arc.progress >= 1) {
+                    impactExplosions.push({ x: arc.x2, y: arc.y2, age: 0 });
+                    logEvent(`DETONACJA GŁOWICY (${arc.label}): Potwierdzono trafienie w cel ${arc.dstName}!`, "crit");
                     ballisticArcs.splice(i, 1);
-                    document.getElementById("hudRight").innerText = `ŚLEDZONE OBIEKTY BALISTYCZNE: ${ballisticArcs.length}`;
+                    updateHudCounter();
                 }
             }
 
-            radarAngle = (radarAngle + 0.025) % (Math.PI * 2);
+            radarAngle = (radarAngle + 0.022) % (Math.PI * 2);
             requestAnimationFrame(drawTacticalCanvas);
         }
 
@@ -2201,6 +2606,10 @@
            8. INICJALIZACJA STARTOWA
            ========================================================================= */
         window.addEventListener("DOMContentLoaded", () => {
+            resizeCanvasToContainer();
+            if ('ResizeObserver' in window) {
+                new ResizeObserver(resizeCanvasToContainer).observe(document.getElementById("mapWrapper"));
+            }
             initIndexedDB();
             renderAudioBankList();
             applyDefconLevel(5, false);
