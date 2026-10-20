@@ -3,1190 +3,2212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zaawansowany Symulator Centrum Dowodzenia DEFCON</title>
+    <title>STRATCOM // Zaawansowany Symulator Centrum Dowodzenia DEFCON</title>
     <style>
         :root {
-            --bg-color: #05070a;
-            --panel-bg: #0b111a;
-            --border-color: #1e293b;
-            --text-main: #94a3b8;
-            --accent-green: #10b981;
-            --accent-yellow: #f59e0b;
-            --accent-orange: #f97316;
-            --accent-red: #ef4444;
-            --accent-blue: #3b82f6;
-            --terminal-green: #22c55e;
-            --crt-glow: rgba(0, 255, 100, 0.03);
+            --bg-deep: #04070b;
+            --bg-panel: #09101a;
+            --bg-card: #0d1726;
+            --bg-input: #060b12;
+            --border-dim: #1b2b42;
+            --border-bright: #2b4568;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --cyan: #06b6d4;
+            --cyan-glow: rgba(6, 182, 212, 0.25);
+            
+            /* Oficjalne kolory kodowe DEFCON */
+            --d5-color: #3b82f6; /* Niebieski - FADE OUT */
+            --d4-color: #10b981; /* Zielony - DOUBLE TAKE */
+            --d3-color: #eab308; /* Żółty - ROUND HOUSE */
+            --d2-color: #f97316; /* Pomarańczowy - FAST PACE */
+            --d1-color: #ef4444; /* Czerwony/Biały - COCKED PISTOL */
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+            font-variant-numeric: tabular-nums;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
+            background-color: var(--bg-deep);
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.08) 0%, transparent 60%),
+                linear-gradient(rgba(27, 43, 66, 0.18) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(27, 43, 66, 0.18) 1px, transparent 1px);
+            background-size: 100% 100%, 28px 28px, 28px 28px;
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 15px;
+            padding: 12px 16px 28px;
             overflow-x: hidden;
-            position: relative;
         }
 
-        /* Efekt scanline CRT */
-        body::before {
-            content: " ";
-            display: block;
+        /* Subtelna siatka CRT */
+        body::after {
+            content: "";
             position: fixed;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            z-index: 99999;
-            background-size: 100% 3px, 3px 100%;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.12) 0px,
+                rgba(0, 0, 0, 0.12) 1px,
+                transparent 1px,
+                transparent 3px
+            );
             pointer-events: none;
+            z-index: 9999;
         }
 
-        header {
+        /* Pasek nagłówkowy */
+        .top-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+            background: linear-gradient(180deg, #0e1929 0%, #09101a 100%);
+            border: 1px solid var(--border-bright);
+            border-radius: 6px;
+            padding: 10px 16px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 12px;
         }
 
-        .header-title h1 {
-            font-size: 1.5rem;
-            color: #f8fafc;
+        .brand-block {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .norad-emblem {
+            width: 42px;
+            height: 42px;
+            border: 2px solid var(--cyan);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: var(--cyan);
+            background: rgba(6, 182, 212, 0.1);
+            box-shadow: 0 0 12px var(--cyan-glow);
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        .brand-title h1 {
+            font-size: 1.15rem;
             letter-spacing: 2px;
+            color: #f8fafc;
             text-transform: uppercase;
         }
 
-        .header-title p {
-            font-size: 0.8rem;
-            color: #64748b;
-        }
-
-        .global-clock {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            padding: 8px 15px;
-            font-size: 1.1rem;
-            color: #38bdf8;
+        .brand-title p {
+            font-size: 0.72rem;
+            color: var(--cyan);
             letter-spacing: 1px;
+        }
+
+        .top-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .telemetry-pill {
+            background: var(--bg-input);
+            border: 1px solid var(--border-dim);
+            padding: 6px 12px;
             border-radius: 4px;
+            font-size: 0.78rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        /* Układ główny */
-        .dashboard-grid {
+        .telemetry-pill .label {
+            color: var(--text-muted);
+            font-size: 0.68rem;
+        }
+
+        .telemetry-pill .val {
+            color: #38bdf8;
+            font-weight: bold;
+        }
+
+        /* Przyciski */
+        .btn {
+            background: #132238;
+            border: 1px solid var(--border-bright);
+            color: var(--text-primary);
+            padding: 7px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #1e3454;
+            border-color: var(--cyan);
+            box-shadow: 0 0 10px var(--cyan-glow);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-cyan {
+            background: rgba(6, 182, 212, 0.15);
+            border-color: var(--cyan);
+            color: #67e8f9;
+        }
+
+        .btn-amber {
+            background: rgba(234, 179, 8, 0.15);
+            border-color: #eab308;
+            color: #fde047;
+        }
+
+        .btn-red {
+            background: rgba(239, 68, 68, 0.18);
+            border-color: #ef4444;
+            color: #fca5a5;
+        }
+
+        .btn-green {
+            background: rgba(16, 185, 129, 0.18);
+            border-color: #10b981;
+            color: #6ee7b7;
+        }
+
+        /* Siatka główna 3-kolumnowa */
+        .main-grid {
             display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 20px;
+            grid-template-columns: 380px 1fr 410px;
+            gap: 14px;
+            align-items: start;
         }
 
-        @media(max-width: 1100px) {
-            .dashboard-grid {
+        @media (max-width: 1420px) {
+            .main-grid {
+                grid-template-columns: 360px 1fr;
+            }
+            .col-right {
+                grid-column: 1 / -1;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 14px;
+            }
+        }
+
+        @media (max-width: 960px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .col-right {
                 grid-template-columns: 1fr;
             }
         }
 
+        /* Panele */
         .panel {
-            background-color: var(--panel-bg);
-            border: 1px solid var(--border-color);
+            background: var(--bg-panel);
+            border: 1px solid var(--border-dim);
             border-radius: 6px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            padding: 14px;
+            margin-bottom: 14px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+            position: relative;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-dim);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            gap: 8px;
         }
 
         .panel-title {
-            font-size: 0.95rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 1.2px;
             text-transform: uppercase;
-            letter-spacing: 1px;
             color: #cbd5e1;
-            margin-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 8px;
         }
 
-        /* DEFCON Status Box */
-        .defcon-display-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 25px;
-            border: 3px solid var(--border-color);
-            border-radius: 8px;
+        .panel-title::before {
+            content: "■";
+            color: var(--cyan);
+            font-size: 0.7rem;
+        }
+
+        /* GŁÓWNY PANEL DEFCON */
+        .defcon-hero {
+            border: 2px solid var(--d5-color);
+            border-radius: 6px;
+            padding: 16px;
             text-align: center;
+            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.14) 0%, rgba(9, 16, 26, 0.95) 75%);
+            transition: all 0.4s ease;
+            margin-bottom: 12px;
             position: relative;
-            transition: all 0.5s ease;
+            overflow: hidden;
         }
 
-        .defcon-number {
-            font-size: 5rem;
-            font-weight: bold;
-            line-height: 1;
-            letter-spacing: 2px;
+        .defcon-hero.level-5 { border-color: var(--d5-color); background: radial-gradient(circle, rgba(59,130,246,0.16) 0%, rgba(9,16,26,0.95) 75%); }
+        .defcon-hero.level-4 { border-color: var(--d4-color); background: radial-gradient(circle, rgba(16,185,129,0.16) 0%, rgba(9,16,26,0.95) 75%); }
+        .defcon-hero.level-3 { border-color: var(--d3-color); background: radial-gradient(circle, rgba(234,179,8,0.18) 0%, rgba(9,16,26,0.95) 75%); }
+        .defcon-hero.level-2 { border-color: var(--d2-color); background: radial-gradient(circle, rgba(249,115,22,0.22) 0%, rgba(9,16,26,0.95) 75%); }
+        .defcon-hero.level-1 {
+            border-color: var(--d1-color);
+            background: radial-gradient(circle, rgba(239,68,68,0.28) 0%, rgba(9,16,26,0.95) 75%);
+            animation: defcon1-pulse 1.2s infinite alternate;
+        }
+
+        @keyframes defcon1-pulse {
+            0% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.4), inset 0 0 12px rgba(239, 68, 68, 0.25); }
+            100% { box-shadow: 0 0 28px rgba(239, 68, 68, 0.85), inset 0 0 25px rgba(239, 68, 68, 0.45); }
+        }
+
+        .defcon-label-top {
+            font-size: 0.72rem;
+            letter-spacing: 3px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .defcon-big-num {
+            font-size: 4.4rem;
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: 3px;
+            margin: 4px 0;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .defcon-codename {
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            padding: 3px 12px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid currentColor;
+        }
+
+        .defcon-summary {
+            font-size: 0.76rem;
+            color: var(--text-primary);
+            line-height: 1.45;
             margin-bottom: 10px;
         }
 
-        .defcon-name {
-            font-size: 1.4rem;
-            font-weight: bold;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            margin-bottom: 15px;
-        }
-
-        .defcon-desc {
-            font-size: 0.85rem;
-            max-width: 600px;
-            color: #94a3b8;
-            line-height: 1.4;
-        }
-
-        /* Kolory DEFCON */
-        .defcon-5 { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05); }
-        .defcon-5 .defcon-number, .defcon-5 .defcon-name { color: var(--accent-green); }
-
-        .defcon-4 { border-color: var(--accent-blue); background: rgba(59, 130, 246, 0.05); }
-        .defcon-4 .defcon-number, .defcon-4 .defcon-name { color: var(--accent-blue); }
-
-        .defcon-3 { border-color: var(--accent-yellow); background: rgba(245, 158, 11, 0.05); }
-        .defcon-3 .defcon-number, .defcon-3 .defcon-name { color: var(--accent-yellow); }
-
-        .defcon-2 { border-color: var(--accent-orange); background: rgba(249, 115, 22, 0.05); }
-        .defcon-2 .defcon-number, .defcon-2 .defcon-name { color: var(--accent-orange); }
-
-        .defcon-1 { border-color: var(--accent-red); background: rgba(239, 68, 68, 0.08); animation: pulse-red 1.5s infinite; }
-        .defcon-1 .defcon-number, .defcon-1 .defcon-name { color: var(--accent-red); }
-
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-            70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-
-        /* Przyciski zmiany DEFCON */
-        .defcon-buttons {
+        /* Pasek szybkiego wyboru DEFCON 1-5 */
+        .defcon-selector-strip {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-            margin-top: 20px;
+            gap: 6px;
+            margin-bottom: 12px;
         }
 
-        .btn-defcon {
-            padding: 10px;
-            font-weight: bold;
-            border: 1px solid var(--border-color);
-            background: #0f172a;
-            color: #cbd5e1;
-            cursor: pointer;
+        .defcon-tab {
+            background: var(--bg-input);
+            border: 1px solid var(--border-dim);
             border-radius: 4px;
-            transition: 0.2s;
+            padding: 8px 4px;
             text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .btn-defcon:hover { background: #1e293b; }
-        .btn-defcon.active-5 { background: var(--accent-green); color: #000; border-color: var(--accent-green); }
-        .btn-defcon.active-4 { background: var(--accent-blue); color: #000; border-color: var(--accent-blue); }
-        .btn-defcon.active-3 { background: var(--accent-yellow); color: #000; border-color: var(--accent-yellow); }
-        .btn-defcon.active-2 { background: var(--accent-orange); color: #000; border-color: var(--accent-orange); }
-        .btn-defcon.active-1 { background: var(--accent-red); color: #fff; border-color: var(--accent-red); }
-
-        /* Suwaki czynników ryzyka */
-        .risk-slider-group {
-            margin-bottom: 15px;
+        .defcon-tab .num {
+            font-size: 1rem;
+            font-weight: 800;
+            display: block;
         }
 
-        .risk-slider-label {
+        .defcon-tab .sub {
+            font-size: 0.58rem;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 2px;
+        }
+
+        .defcon-tab.active-5 { border-color: var(--d5-color); background: rgba(59,130,246,0.22); color: #93c5fd; }
+        .defcon-tab.active-4 { border-color: var(--d4-color); background: rgba(16,185,129,0.22); color: #6ee7b7; }
+        .defcon-tab.active-3 { border-color: var(--d3-color); background: rgba(234,179,8,0.22); color: #fde047; }
+        .defcon-tab.active-2 { border-color: var(--d2-color); background: rgba(249,115,22,0.25); color: #fdba74; }
+        .defcon-tab.active-1 { border-color: var(--d1-color); background: rgba(239,68,68,0.3); color: #fca5a5; }
+
+        /* Telemetria 5 rodzajów sił zbrojnych */
+        .branches-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .branch-row {
             display: flex;
             justify-content: space-between;
-            font-size: 0.8rem;
-            margin-bottom: 5px;
+            align-items: center;
+            background: var(--bg-input);
+            border: 1px solid var(--border-dim);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.73rem;
+        }
+
+        .branch-name {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .branch-badge {
+            padding: 2px 7px;
+            border-radius: 3px;
+            font-size: 0.68rem;
+            font-weight: 700;
+        }
+
+        /* Suwaki czynników ryzyka */
+        .slider-item {
+            margin-bottom: 11px;
+        }
+
+        .slider-top {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.74rem;
+            margin-bottom: 4px;
+        }
+
+        .slider-top .val {
+            font-weight: 700;
+            color: var(--cyan);
         }
 
         input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
             width: 100%;
-            accent-color: var(--accent-blue);
-            background: #1e293b;
-            height: 6px;
-            border-radius: 3px;
+            height: 7px;
+            background: #162438;
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
             outline: none;
         }
 
-        .global-index-bar {
-            background: #020617;
-            border: 1px solid var(--border-color);
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .progress-container {
-            flex-grow: 1;
-            background: #1e293b;
-            height: 12px;
-            border-radius: 6px;
-            overflow: hidden;
-            margin: 0 15px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--accent-green), var(--accent-yellow), var(--accent-red));
-            transition: width 0.3s ease;
-        }
-
-        /* Scenariusze */
-        .scenarios-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 10px;
-        }
-
-        .btn-scenario {
-            background: #111827;
-            border: 1px solid var(--border-color);
-            color: #cbd5e1;
-            padding: 10px;
-            font-size: 0.75srem;
-            border-radius: 4px;
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: var(--cyan);
             cursor: pointer;
-            text-align: left;
-            transition: 0.2s;
+            box-shadow: 0 0 8px var(--cyan);
         }
 
-        .btn-scenario:hover {
-            border-color: var(--accent-blue);
-            background: #1f2937;
-        }
-
-        /* Bank Audio i Audio Player */
-        .audio-bank-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 8px;
+        .tension-meter-box {
+            background: var(--bg-input);
+            border: 1px solid var(--border-bright);
+            padding: 10px 12px;
+            border-radius: 5px;
             margin-top: 10px;
         }
 
-        .audio-item {
-            background: #020617;
-            border: 1px solid var(--border-color);
-            padding: 8px;
+        .tension-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: #0e1726;
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 6px 0;
+            border: 1px solid var(--border-dim);
+        }
+
+        .tension-bar-fill {
+            height: 100%;
+            width: 12%;
+            background: linear-gradient(90deg, #3b82f6 0%, #10b981 30%, #eab308 55%, #f97316 78%, #ef4444 100%);
+            transition: width 0.3s ease;
+        }
+
+        /* Mapa taktyczna i Radar BMEWS */
+        .map-wrapper {
+            position: relative;
+            background: #030811;
+            border: 1px solid var(--border-bright);
+            border-radius: 6px;
+            overflow: hidden;
+            height: 360px;
+        }
+
+        #tacticalCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: crosshair;
+        }
+
+        .map-overlay-hud {
+            position: absolute;
+            top: 8px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            font-size: 0.7rem;
+            color: #38bdf8;
+        }
+
+        .hud-tag {
+            background: rgba(4, 7, 11, 0.82);
+            border: 1px solid var(--border-dim);
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+
+        /* Scenariusze kryzysowe */
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        @media (max-width: 640px) {
+            .scenario-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .scenario-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            color: var(--text-primary);
+            padding: 9px 10px;
+            border-radius: 5px;
+            font-size: 0.72rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .scenario-btn:hover {
+            border-color: var(--cyan);
+            background: #132238;
+            transform: translateY(-1px);
+        }
+
+        .scenario-btn .sc-title {
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .scenario-btn .sc-sub {
+            font-size: 0.64rem;
+            color: var(--text-muted);
+        }
+
+        /* Sekcja Procedur Nuklearnych (MOLINK, EAM, SIOP/PAL) */
+        .nuclear-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 760px) {
+            .nuclear-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .sub-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 5px;
+            padding: 11px;
+        }
+
+        .sub-box-title {
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: #38bdf8;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .molink-screen {
+            background: #040a08;
+            border: 1px solid #14532d;
+            color: #4ade80;
+            padding: 9px;
             border-radius: 4px;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
+            min-height: 88px;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .dilemma-choices {
             display: flex;
             flex-direction: column;
             gap: 5px;
         }
 
-        .audio-item.loaded {
-            border-color: var(--accent-green);
-        }
-
-        .audio-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .audio-status {
-            font-size: 0.65rem;
-            padding: 2px 4px;
-            border-radius: 2px;
-            background: #1e293b;
-            color: #94a3b8;
-        }
-
-        .audio-status.ok { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
-
-        .audio-controls-row {
-            display: flex;
-            gap: 5px;
-        }
-
-        .btn-mini {
-            background: #1e293b;
-            border: 1px solid var(--border-color);
-            color: #cbd5e1;
-            padding: 3px 6px;
-            font-size: 0.7rem;
-            border-radius: 3px;
+        .dilemma-btn {
+            background: #0b1524;
+            border: 1px solid var(--border-bright);
+            color: #e2e8f0;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 0.69rem;
+            text-align: left;
             cursor: pointer;
+            transition: 0.15s;
         }
 
-        .btn-mini:hover { background: #334155; }
+        .dilemma-btn:hover:not(:disabled) {
+            border-color: #4ade80;
+            background: #112233;
+        }
 
-        /* Mapa i Radar */
-        .map-container {
-            width: 100%;
-            height: 250px;
-            background: #020617;
-            border: 1px solid var(--border-color);
+        .eam-screen {
+            background: #0c0a04;
+            border: 1px solid #713f12;
+            color: #facc15;
+            padding: 9px;
             border-radius: 4px;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 0.72rem;
+            min-height: 88px;
+            line-height: 1.4;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
         }
 
-        .radar-sweep {
-            width: 220px;
-            height: 220px;
-            border: 1px dashed rgba(16, 185, 129, 0.4);
-            border-radius: 50%;
-            position: relative;
-            background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, rgba(2, 6, 23, 0.9) 70%);
-            overflow: hidden;
-        }
-
-        .radar-sweep::after {
-            content: '';
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 110px; height: 110px;
-            background: linear-gradient(45deg, rgba(16, 185, 129, 0.8) 0%, transparent 70%);
-            transform-origin: 0 0;
-            animation: radar-spin 4s linear infinite;
-        }
-
-        @keyframes radar-spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .map-hotspot {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: var(--accent-red);
-            border-radius: 50%;
-            box-shadow: 0 0 6px var(--accent-red);
-            animation: blink 1s infinite alternate;
-        }
-
-        @keyframes blink {
-            from { opacity: 0.3; }
-            to { opacity: 1; }
-        }
-
-        /* Terminal MOLINK */
-        .terminal-box {
-            background: #020617;
-            border: 1px solid var(--border-color);
+        /* Konsola SIOP / The Biscuit / Two-Man Rule */
+        .siop-console {
+            grid-column: 1 / -1;
+            background: linear-gradient(180deg, rgba(69, 10, 10, 0.28) 0%, rgba(13, 23, 38, 0.95) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            border-radius: 5px;
             padding: 12px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            height: 140px;
-            overflow-y: auto;
-            color: var(--terminal-green);
+        }
+
+        .siop-steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
             margin-bottom: 10px;
         }
 
-        /* Dziennik Logów */
-        .log-box {
-            background: #020617;
-            border: 1px solid var(--border-color);
-            padding: 10px;
+        @media (max-width: 700px) {
+            .siop-steps {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .siop-step-card {
+            background: var(--bg-input);
+            border: 1px solid var(--border-dim);
             border-radius: 4px;
-            height: 180px;
-            overflow-y: auto;
-            font-size: 0.75rem;
+            padding: 9px;
+            font-size: 0.71rem;
+        }
+
+        .gold-code-display {
+            background: #1a1205;
+            border: 1px dashed #eab308;
+            color: #fde047;
+            padding: 5px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            margin: 6px 0;
+            border-radius: 3px;
+        }
+
+        .key-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .sync-timer-bar {
+            height: 5px;
+            background: #1e293b;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .sync-timer-fill {
+            height: 100%;
+            width: 0%;
+            background: #f59e0b;
+            transition: width 0.1s linear;
+        }
+
+        .btn-siop-launch {
+            width: 100%;
+            padding: 11px;
+            font-size: 0.82rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-radius: 4px;
+            border: 2px solid #7f1d1d;
+            background: #2a0a0a;
+            color: #fca5a5;
+            cursor: not-allowed;
+            transition: 0.25s;
+        }
+
+        .btn-siop-launch.armed {
+            background: #dc2626;
+            border-color: #fef08a;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 0 22px rgba(239, 68, 68, 0.85);
+            animation: defcon1-pulse 0.8s infinite alternate;
+        }
+
+        /* Bank Audio MP3 + IndexedDB */
+        .audio-stage-banner {
+            background: var(--bg-input);
+            border: 1px solid var(--border-bright);
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.73rem;
+        }
+
+        .stage-pill {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: 700;
+            font-size: 0.68rem;
+            background: rgba(6, 182, 212, 0.15);
+            color: #67e8f9;
+            border: 1px solid var(--cyan);
+        }
+
+        .audio-level-row {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            padding: 7px 9px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.71rem;
+        }
+
+        .audio-files-pair {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .file-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.66rem;
+            color: var(--text-secondary);
+        }
+
+        .db-tag {
+            font-size: 0.6rem;
+            padding: 1px 5px;
+            border-radius: 3px;
+            background: #1e293b;
             color: #94a3b8;
         }
 
-        .log-entry {
-            margin-bottom: 4px;
-            border-bottom: 1px dashed #1e293b;
-            padding-bottom: 3px;
+        .db-tag.saved {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
         }
 
-        .log-time { color: #38bdf8; }
-        .log-alert { color: var(--accent-red); font-weight: bold; }
-
-        /* Sekcja SIOP i PAL */
-        .siop-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 15px;
-        }
-
-        .siop-card {
-            background: #020617;
-            border: 1px solid var(--border-color);
-            padding: 12px;
+        /* Dziennik Zdarzeń ZULU */
+        .log-container {
+            background: var(--bg-input);
+            border: 1px solid var(--border-dim);
             border-radius: 4px;
-            text-align: center;
-        }
-
-        .btn-launch {
-            background: #7f1d1d;
-            border: 1px solid var(--accent-red);
-            color: #fff;
-            padding: 12px;
-            font-weight: bold;
-            width: 100%;
-            border-radius: 4px;
-            cursor: not-allowed;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            transition: 0.3s;
-        }
-
-        .btn-launch.ready {
-            background: var(--accent-red);
-            cursor: pointer;
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
-            animation: pulse-red 1s infinite;
-        }
-
-        .flex-row {
+            height: 230px;
+            overflow-y: auto;
+            padding: 8px;
+            font-size: 0.71rem;
             display: flex;
-            gap: 10px;
-            align-items: center;
-            justify-content: space-between;
+            flex-direction: column;
+            gap: 5px;
         }
 
-        .btn-primary {
-            background: #1e3a8a;
-            border: 1px solid var(--accent-blue);
-            color: #fff;
-            padding: 6px 12px;
+        .log-item {
+            padding: 5px 7px;
+            border-left: 3px solid var(--cyan);
+            background: rgba(13, 23, 38, 0.7);
+            line-height: 1.35;
+        }
+
+        .log-item.warn { border-left-color: #eab308; }
+        .log-item.crit { border-left-color: #ef4444; background: rgba(127, 29, 29, 0.22); color: #fecaca; }
+        .log-item.ok { border-left-color: #10b981; }
+
+        .log-ts {
+            color: #38bdf8;
+            font-weight: 700;
+            margin-right: 6px;
+        }
+
+        .note-input-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .note-input {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border-bright);
+            color: var(--text-primary);
+            padding: 6px 9px;
             border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.73rem;
+            outline: none;
         }
-        .btn-primary:hover { background: #1d4ed8; }
 
-        input[type="file"] { display: none; }
+        .note-input:focus {
+            border-color: var(--cyan);
+        }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="header-title">
-            <h1>DEFCON Strategic Command</h1>
-            <p>Integrated Global Defense Readiness & Telemetry Center v4.5</p>
+    <!-- GÓRNY PASEK DOWODZENIA -->
+    <header class="top-bar">
+        <div class="brand-block">
+            <div class="norad-emblem">NORAD</div>
+            <div class="brand-title">
+                <h1>USSTRATCOM // GLOBAL DEFCON COMMAND</h1>
+                <p>CHEYENNE MOUNTAIN COMPLEX • SYSTEM GOTOWOŚCI STRATEGICZNEJ</p>
+            </div>
         </div>
-        <div class="global-clock" id="zuluClock">UTC 00:00:00 ZULU</div>
+
+        <div class="top-controls">
+            <div class="telemetry-pill">
+                <span class="label">CZAS ZULU (UTC):</span>
+                <span class="val" id="clockZulu">00:00:00Z</span>
+            </div>
+            <div class="telemetry-pill">
+                <span class="label">TRYB STEROWANIA:</span>
+                <span class="val" id="controlModeLabel" style="color:#34d399;">AUTOMATYCZNY</span>
+                <button class="btn" id="toggleModeBtn" onclick="toggleControlMode()" style="padding:3px 7px; font-size:0.66rem;">ZMIEŃ</button>
+            </div>
+            <button class="btn btn-cyan" onclick="document.getElementById('mp3Input').click()" id="topUploadBtn">
+                📁 WGRAJ MP3 (0/9)
+            </button>
+            <button class="btn" id="muteToggleBtn" onclick="toggleMute()">🔊 AUDIO: WŁ.</button>
+            <input type="file" id="mp3Input" multiple accept="audio/mp3,audio/mpeg,audio/*" style="display:none" onchange="handleFilesSelected(event)">
+        </div>
     </header>
 
-    <div class="dashboard-grid">
-        <!-- Lewa kolumna: Główny Status, Suwaki, Scenariusze, Mapa -->
-        <div>
-            <!-- Panel DEFCON -->
+    <!-- GŁÓWNA SIATKA 3-KOLUMNOWA -->
+    <main class="main-grid">
+
+        <!-- KOLUMNA LEWA: STATUS DEFCON + SUWAKI RYZYKA -->
+        <section class="col-left">
             <div class="panel">
-                <div class="panel-title">
-                    <span>Aktualny Status Gotowości</span>
+                <div class="panel-header">
+                    <span class="panel-title">Główny Status Gotowości DEFCON</span>
+                    <span id="palBadgeTop" style="font-size:0.68rem; padding:2px 6px; border-radius:3px; background:rgba(16,185,129,0.18); color:#6ee7b7; border:1px solid #10b981;">PAL: ZABLOKOWANY</span>
+                </div>
+
+                <!-- Duży wyświetlacz poziomu -->
+                <div class="defcon-hero level-5" id="defconHero">
+                    <div class="defcon-label-top">DEFENSE READINESS CONDITION</div>
+                    <div class="defcon-big-num" id="defconNumber" style="color:var(--d5-color);">DEFCON 5</div>
+                    <div class="defcon-codename" id="defconCodename" style="color:var(--d5-color);">FADE OUT</div>
+                    <p class="defcon-summary" id="defconSummary">
+                        Standardowa gotowość czasu pokoju. Brak bezpośrednich zagrożeń strategicznych. Systemy wczesnego ostrzegania pracują w trybie rutynowej obserwacji.
+                    </p>
+                </div>
+
+                <!-- Pasek wyboru DEFCON 5..1 -->
+                <div class="defcon-selector-strip">
+                    <div class="defcon-tab active-5" id="tabDef5" onclick="manualSelectDefcon(5)">
+                        <span class="num">5</span>
+                        <span class="sub">FADE OUT</span>
+                    </div>
+                    <div class="defcon-tab" id="tabDef4" onclick="manualSelectDefcon(4)">
+                        <span class="num">4</span>
+                        <span class="sub">DOUBLE TAKE</span>
+                    </div>
+                    <div class="defcon-tab" id="tabDef3" onclick="manualSelectDefcon(3)">
+                        <span class="num">3</span>
+                        <span class="sub">ROUND HOUSE</span>
+                    </div>
+                    <div class="defcon-tab" id="tabDef2" onclick="manualSelectDefcon(2)">
+                        <span class="num">2</span>
+                        <span class="sub">FAST PACE</span>
+                    </div>
+                    <div class="defcon-tab" id="tabDef1" onclick="manualSelectDefcon(1)">
+                        <span class="num">1</span>
+                        <span class="sub">COCKED PISTOL</span>
+                    </div>
+                </div>
+
+                <!-- Telemetria 5 rodzajów sił zbrojnych -->
+                <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:5px; letter-spacing:1px;">
+                    Telemetria Sił Strategicznych (5 Rodzajów):
+                </div>
+                <div class="branches-list" id="branchesContainer">
+                    <!-- Wypełniane dynamicznie -->
+                </div>
+            </div>
+
+            <!-- Suwaki czynników ryzyka geopolitycznego -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Czynniki Ryzyka Geopolitycznego</span>
+                    <button class="btn" onclick="resetSliders()" style="padding:3px 8px; font-size:0.66rem;">RESETUJ</button>
+                </div>
+
+                <div class="slider-item">
+                    <div class="slider-top">
+                        <span>1. Aktywność cybernetyczna (SCADA/C4ISR)</span>
+                        <span class="val" id="slVal1">10%</span>
+                    </div>
+                    <input type="range" id="sl1" min="0" max="100" value="10" oninput="onSlidersChanged()">
+                </div>
+
+                <div class="slider-item">
+                    <div class="slider-top">
+                        <span>2. Ruchy wojsk konwencjonalnych</span>
+                        <span class="val" id="slVal2">10%</span>
+                    </div>
+                    <input type="range" id="sl2" min="0" max="100" value="10" oninput="onSlidersChanged()">
+                </div>
+
+                <div class="slider-item">
+                    <div class="slider-top">
+                        <span>3. Napięcie dyplomatyczne</span>
+                        <span class="val" id="slVal3">15%</span>
+                    </div>
+                    <input type="range" id="sl3" min="0" max="100" value="15" oninput="onSlidersChanged()">
+                </div>
+
+                <div class="slider-item">
+                    <div class="slider-top">
+                        <span>4. Anomalie radarowe / satelitarne (SBIRS)</span>
+                        <span class="val" id="slVal4">5%</span>
+                    </div>
+                    <input type="range" id="sl4" min="0" max="100" value="5" oninput="onSlidersChanged()">
+                </div>
+
+                <div class="slider-item">
+                    <div class="slider-top">
+                        <span>5. Aktywność sił strategicznych (ICBM/SSBN)</span>
+                        <span class="val" id="slVal5">5%</span>
+                    </div>
+                    <input type="range" id="sl5" min="0" max="100" value="5" oninput="onSlidersChanged()">
+                </div>
+
+                <div class="tension-meter-box">
+                    <div style="display:flex; justify-content:space-between; font-size:0.76rem;">
+                        <span>INDEKS NAPIĘCIA GLOBALNEGO:</span>
+                        <strong id="tensionIndexText" style="color:#38bdf8;">9% (DEFCON 5)</strong>
+                    </div>
+                    <div class="tension-bar-bg">
+                        <div class="tension-bar-fill" id="tensionBarFill"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.62rem; color:var(--text-muted);">
+                        <span>0% [D5]</span>
+                        <span>22% [D4]</span>
+                        <span>45% [D3]</span>
+                        <span>68% [D2]</span>
+                        <span>86%+ [D1]</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- KOLUMNA ŚRODKOWA: MAPA TAKTYCZNA / RADAR BMEWS + SCENARIUSZE + PROCEDURY NUKLEARNE -->
+        <section class="col-center">
+            <!-- Taktyczna Mapa Świata & Radar Polarny BMEWS -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Wizualizacja Taktyczna NORAD / Radar Polarny BMEWS</span>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn btn-cyan" id="btnViewMap" onclick="setCanvasMode('map')" style="padding:4px 9px; font-size:0.68rem;">🌍 MAPA GLOBALNA</button>
+                        <button class="btn" id="btnViewRadar" onclick="setCanvasMode('radar')" style="padding:4px 9px; font-size:0.68rem;">📡 RADAR POLARNY BMEWS</button>
+                        <button class="btn btn-red" onclick="spawnTestBallisticArc()" style="padding:4px 9px; font-size:0.68rem;">🚀 SYMULUJ ŚLAD ICBM</button>
+                    </div>
+                </div>
+
+                <div class="map-wrapper">
+                    <canvas id="tacticalCanvas" width="820" height="360"></canvas>
+                    <div class="map-overlay-hud">
+                        <div class="hud-tag" id="hudLeft">PROJEKCJA: GLOBALNA SIATKA TAKTYCZNA NORAD • SATELITY SBIRS: 4 ONLINE</div>
+                        <div class="hud-tag" id="hudRight">ŚLEDZONE OBIEKTY BALISTYCZNE: 0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generator Scenariuszy Kryzysowych -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Generator Scenariuszy Kryzysowych</span>
+                    <span style="font-size:0.68rem; color:var(--text-muted);">Natychmiastowa symulacja incydentu sztabowego</span>
+                </div>
+
+                <div class="scenario-grid">
+                    <button class="scenario-btn" onclick="runScenario('adiz')">
+                        <span class="sc-title">✈️ Naruszenie przestrzeni ADIZ</span>
+                        <span class="sc-sub">Przechwycenie bombowców Tu-160/B-52 przy granicy sektora arktycznego</span>
+                    </button>
+                    <button class="scenario-btn" onclick="runScenario('cyber')">
+                        <span class="sc-title">💻 Cyberatak na sieć SCADA</span>
+                        <span class="sc-sub">Paraliż systemów energetycznych i węzłów łączności sztabowej</span>
+                    </button>
+                    <button class="scenario-btn" onclick="runScenario('sbirs')">
+                        <span class="sc-title">🛰️ Oślepienie satelity SBIRS</span>
+                        <span class="sc-sub">Utrata telemetrii podczerwieni nad sektorem syberyjskim</span>
+                    </button>
+                    <button class="scenario-btn" onclick="runScenario('icbm')">
+                        <span class="sc-title">🚀 Start obiektu ICBM / SLBM</span>
+                        <span class="sc-sub">Wykrycie pióropusza cieplnego rakiety wielogłowicowej MIRV</span>
+                    </button>
+                    <button class="scenario-btn" onclick="runScenario('peace')">
+                        <span class="sc-title">🕊️ Szczyt pokojowy / Deeskalacja</span>
+                        <span class="sc-sub">Wycofanie jednostek do baz stałej dyslokacji i inspekcja START</span>
+                    </button>
+                    <button class="scenario-btn" onclick="runScenario('random')">
+                        <span class="sc-title">🎲 Losowy incydent globalny</span>
+                        <span class="sc-sub">Wygeneruj nieprzewidziany splot wydarzeń geopolitycznych</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sekcja: Procedury Nuklearne i Łączność Kryzysowa (Punkt 3) -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Procedury Nuklearne, Gorąca Linia (MOLINK) & Szyfrogramy EAM</span>
+                    <span style="font-size:0.68rem; color:#facc15;">PROTOKÓŁ SIOP / EAM / TWO-MAN RULE</span>
+                </div>
+
+                <div class="nuclear-grid">
+                    <!-- 1. Terminal Gorącej Linii MOLINK z dylematami decyzyjnymi -->
+                    <div class="sub-box">
+                        <div class="sub-box-title">
+                            <span>☎️ Gorąca Linia (MOLINK: Waszyngton ⇄ Moskwa/Pekin)</span>
+                            <button class="btn btn-amber" onclick="triggerNewMolinkDilemma()" style="padding:2px 7px; font-size:0.64rem;">NOWA DEPESZA</button>
+                        </div>
+                        <div class="molink-screen" id="molinkText">
+                            [DEPESZA #01] WYKRYTO ANOMALIĘ TERMICZNĄ W SEKTORZE SYBERYJSKIM. STRONA PRZECIWNA TWIERDZI, ŻE TO AWARIA GAZOCIĄGU. WYMAGANA DECYZJA OFICERA DYŻURNEGO:
+                        </div>
+                        <div class="dilemma-choices" id="molinkChoices">
+                            <!-- Przyciski A / B / C -->
+                        </div>
+                    </div>
+
+                    <!-- 2. Generator Szyfrogramów EAM / SKYKING -->
+                    <div class="sub-box">
+                        <div class="sub-box-title">
+                            <span>📻 Generator EAM / SKYKING (HF 11175 kHz)</span>
+                            <span style="font-size:0.64rem; color:#fde047;">ALFABET NATO</span>
+                        </div>
+                        <div class="eam-screen" id="eamBox">
+                            OCZEKIWANIE NA WYGENEROWANIE SZYFROGRAMU EAM...
+                        </div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button class="btn" onclick="generateEAM(false)" style="flex:1; font-size:0.68rem;">GENERUJ EAM (26 ZN.)</button>
+                            <button class="btn btn-red" onclick="generateEAM(true)" style="flex:1; font-size:0.68rem;">PRIORYTET SKYKING</button>
+                            <button class="btn btn-cyan" onclick="transmitEAMVoice()" style="width:100%; font-size:0.68rem; justify-content:center;">🔊 NADAJ KOMUNIKAT GŁOSEM RADIOWYM HF</button>
+                        </div>
+                    </div>
+
+                    <!-- 3. Konsola SIOP: Karta The Biscuit, PAL i Zasada Dwóch Kluczy -->
+                    <div class="siop-console">
+                        <div class="sub-box-title" style="color:#fca5a5;">
+                            <span>☢️ KONSOLA SIOP — AUTORYZACJA KODÓW „THE BISCUIT”, BLOKADA PAL & ZASADA DWÓCH KLUCZY</span>
+                            <span id="siopStateBadge" style="color:#f87171;">STAN: ZABEZPIECZONY</span>
+                        </div>
+
+                        <div class="siop-steps">
+                            <!-- Etap 1: The Biscuit -->
+                            <div class="siop-step-card">
+                                <strong>ETAP 1: KARTA „THE BISCUIT”</strong>
+                                <p style="color:var(--text-muted); margin-top:3px;">Zerwij plombę, aby odczytać prezydencki Złoty Kod SAS.</p>
+                                <div class="gold-code-display" id="biscuitDisplay">[ PLOMBA NIENARUSZONA ]</div>
+                                <button class="btn btn-amber" onclick="breakBiscuitSeal()" style="width:100%; justify-content:center; font-size:0.68rem;">ZERWIJ PLOMBĘ KARTY</button>
+                            </div>
+
+                            <!-- Etap 2: Blokada PAL -->
+                            <div class="siop-step-card">
+                                <strong>ETAP 2: BLOKADA GŁOWIC PAL</strong>
+                                <p style="color:var(--text-muted); margin-top:3px;">Wprowadź Złoty Kod SAS, aby zwolnić Permissive Action Link.</p>
+                                <div style="display:flex; gap:4px; margin:6px 0;">
+                                    <input type="text" id="palCodeInput" class="note-input" placeholder="Kod z karty..." style="text-transform:uppercase; font-weight:bold;">
+                                </div>
+                                <button class="btn btn-cyan" onclick="verifyAndUnlockPAL()" style="width:100%; justify-content:center; font-size:0.68rem;">AUTORYZUJ ODBLOKOWANIE PAL</button>
+                            </div>
+
+                            <!-- Etap 3: Two-Man Rule (okno 3 sek.) -->
+                            <div class="siop-step-card">
+                                <strong>ETAP 3: ZASADA DWÓCH KLUCZY</strong>
+                                <p style="color:var(--text-muted); margin-top:3px;">Przekręć klucze ALFA i BRAVO w oknie 3.0 sekund.</p>
+                                <div class="key-row">
+                                    <button class="btn" id="btnKeyAlpha" onclick="turnLaunchKey('alpha')" style="justify-content:center; font-size:0.66rem;">🔑 ALFA: OFF</button>
+                                    <button class="btn" id="btnKeyBravo" onclick="turnLaunchKey('bravo')" style="justify-content:center; font-size:0.66rem;">🔑 BRAVO: OFF</button>
+                                </div>
+                                <div class="sync-timer-bar">
+                                    <div class="sync-timer-fill" id="syncTimerFill"></div>
+                                </div>
+                                <div id="syncStatusText" style="font-size:0.63rem; color:var(--text-muted); margin-top:4px; text-align:center;">
+                                    Oczekiwanie na synchroniczny obrót...
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="btn-siop-launch" id="btnSiopLaunch" onclick="executeSiopLaunch()">
+                            ☢️ AUTORYZUJ UDERZENIE ODWETOWE (SIOP LAUNCH) — WYMAGANY DEFCON 1, PAL I DWA KLUCZE
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- KOLUMNA PRAWA: BANK AUDIO MP3 (INDEXEDDB) + DZIENNIK ZDARZEŃ ZULU -->
+        <section class="col-right">
+            <!-- Bank Audio DEFCON z trwałą bazą IndexedDB -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Bank Audio DEFCON (IndexedDB)</span>
+                    <span id="dbStatusBadge" style="font-size:0.68rem; color:#34d399;">PAMIĘĆ DB: 0/9 PLIKÓW</span>
+                </div>
+
+                <!-- Monitor sekwencji -->
+                <div class="audio-stage-banner">
                     <div>
-                        Tryb: <span id="modeStatus" style="color: var(--accent-green); font-weight: bold;">AUTOMATYCZNY (SUWAKI)</span>
-                        <button class="btn-mini" id="toggleModeBtn" style="margin-left: 10px;">PRZEŁĄCZ NA RĘCZNY</button>
+                        <div style="font-size:0.65rem; color:var(--text-muted);">STATUS SEKWENCJI AUDIO:</div>
+                        <div id="audioSequenceText" style="font-weight:700; color:#f8fafc; margin-top:2px;">GOTOWY (OCZEKIWANIE)</div>
                     </div>
+                    <span class="stage-pill" id="audioStagePill">BEZCZYNNY</span>
                 </div>
 
-                <div class="defcon-display-box defcon-3" id="defconDisplayBox">
-                    <div class="defcon-number" id="defconNum">3</div>
-                    <div class="defcon-name" id="defconName">ROUND HOUSE</div>
-                    <div class="defcon-desc" id="defconDesc">Siły zbrojne w stanie podwyższonej gotowości. Gotowość sił strategicznych do działań w skróconym czasie.</div>
+                <!-- Sterowanie głośnością i wgrywaniem -->
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; font-size:0.72rem;">
+                    <span>Głośność: <strong id="volLabel">85%</strong></span>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="85" style="width:110px;" oninput="updateVolume(this.value)">
+                    <button class="btn btn-red" onclick="stopAllAudio()" style="padding:4px 8px; font-size:0.66rem;">⏹ STOP</button>
                 </div>
 
-                <div class="defcon-buttons" id="defconManualButtons">
-                    <button class="btn-defcon" onclick="setDefconLevel(5)">DEFCON 5</button>
-                    <button class="btn-defcon" onclick="setDefconLevel(4)">DEFCON 4</button>
-                    <button class="btn-defcon active-3" onclick="setDefconLevel(3)">DEFCON 3</button>
-                    <button class="btn-defcon" onclick="setDefconLevel(2)">DEFCON 2</button>
-                    <button class="btn-defcon" onclick="setDefconLevel(1)">DEFCON 1</button>
-                </div>
-            </div>
-
-            <!-- Czynniki Ryzyka Geopolitycznego -->
-            <div class="panel">
-                <div class="panel-title">
-                    <span>Czynniki Ryzyka Geopolitycznego (Suwaki)</span>
-                    <button class="btn-mini" onclick="resetSliders()">RESETUJ</button>
+                <div style="display:flex; gap:6px; margin-bottom:10px;">
+                    <button class="btn btn-cyan" onclick="document.getElementById('mp3Input').click()" style="flex:1; justify-content:center; font-size:0.7rem;">
+                        📥 WYBIERZ 9 PLIKÓW MP3
+                    </button>
+                    <button class="btn" onclick="clearIndexedDBAudio()" style="font-size:0.68rem; color:#fca5a5;">
+                        🗑️ WYCZYŚĆ PAMIĘĆ DB
+                    </button>
                 </div>
 
-                <div class="risk-slider-group">
-                    <div class="risk-slider-label">
-                        <span>Aktywność Cyb. / Zakłócenia SCADA</span>
-                        <span id="val1">20%</span>
-                    </div>
-                    <input type="range" id="slider1" min="0" max="100" value="20" oninput="updateFromSliders()">
+                <!-- Lista 5 poziomów (9 plików MP3) -->
+                <div id="audioBankList">
+                    <!-- Wypełniane dynamicznie -->
                 </div>
 
-                <div class="risk-slider-group">
-                    <div class="risk-slider-label">
-                        <span>Nietypowe Ruchy Wojsk Konwencjonalnych</span>
-                        <span id="val2">25%</span>
-                    </div>
-                    <input type="range" id="slider2" min="0" max="100" value="25" oninput="updateFromSliders()">
-                </div>
-
-                <div class="risk-slider-group">
-                    <div class="risk-slider-label">
-                        <span>Napięcie Dyplomatyczne / Zerwanie Kanałów</span>
-                        <span id="val3">30%</span>
-                    </div>
-                    <input type="range" id="slider3" min="0" max="100" value="30" oninput="updateFromSliders()">
-                </div>
-
-                <div class="risk-slider-group">
-                    <div class="risk-slider-label">
-                        <span>Anomalie Radarowe / Satelitarne (SBIRS)</span>
-                        <span id="val4">15%</span>
-                    </div>
-                    <input type="range" id="slider4" min="0" max="100" value="15" oninput="updateFromSliders()">
-                </div>
-
-                <div class="risk-slider-group">
-                    <div class="risk-slider-label">
-                        <span>Aktywność Sił Strategicznych (SSBN / ICBM)</span>
-                        <span id="val5">10%</span>
-                    </div>
-                    <input type="range" id="slider5" min="0" max="100" value="10" oninput="updateFromSliders()">
-                </div>
-
-                <div class="global-index-bar">
-                    <span>Indeks Napięcia Globalnego:</span>
-                    <div class="progress-container">
-                        <div class="progress-fill" id="globalProgress"></div>
-                    </div>
-                    <span id="globalIndexVal" style="font-weight: bold; color: #38bdf8;">20%</span>
-                </div>
-            </div>
-
-            <!-- Scenariusze Kryzysowe -->
-            <div class="panel">
-                <div class="panel-title"><span>Generator Scenariuszy Kryzysowych</span></div>
-                <div class="scenarios-grid">
-                    <button class="btn-scenario" onclick="triggerScenario('adiz')">Naruszenie ADIZ</button>
-                    <button class="btn-scenario" onclick="triggerScenario('cyber')">Awaria Sieci SCADA</button>
-                    <button class="btn-scenario" onclick="triggerScenario('sbirs')">Oślepienie Satelity</button>
-                    <button class="btn-scenario" onclick="triggerScenario('icbm')">Start ICBM / SLBM</button>
-                    <button class="btn-scenario" onclick="triggerScenario('peace')">Szczyt Pokojowy</button>
-                    <button class="btn-scenario" onclick="triggerScenario('random')">Losowy Incydent</button>
-                </div>
-            </div>
-
-            <!-- Mapa i Radar BMEWS -->
-            <div class="panel">
-                <div class="panel-title">
-                    <span>Taktyczny Radar Arktyczny BMEWS & Mapa</span>
-                    <button class="btn-mini" onclick="toggleRadarView()">PRZEŁĄCZ WIDOK</button>
-                </div>
-                <div class="map-container" id="mapContainer">
-                    <div class="radar-sweep">
-                        <div class="map-hotspot" style="top: 70px; left: 110px;"></div>
-                        <div class="map-hotspot" style="top: 140px; left: 80px; background: #3b82f6;"></div>
-                        <div class="map-hotspot" style="top: 90px; left: 150px; background: #f59e0b;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Prawa kolumna: Bank Audio, Terminal Molink, EAM, PAL/SIOP, Logi -->
-        <div>
-            <!-- Bank Audio z IndexedDB -->
-            <div class="panel">
-                <div class="panel-title">
-                    <span>Bank Audio DEFCON (DB Storage)</span>
-                    <span id="audioCountBadge" style="font-size:0.75rem; color: var(--accent-green);">DB: 0/9</span>
-                </div>
-                <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px;">
-                    Wgraj 9 plików MP3 (`defcon 1..5 alert.mp3` oraz `defcon 1..4 announcment.mp3`). Zostaną zapisane w bazie przeglądarki!
+                <p style="font-size:0.64rem; color:var(--text-muted); margin-top:8px; line-height:1.35;">
+                    💡 Po zmianie poziomu najpierw wybrzmiewa plik <code>defcon X alert.mp3</code>, a bezpośrednio po jego zakończeniu <code>defcon X announcment.mp3</code> (poziom 5 posiada wyłącznie alarm). Raz wgrane pliki zostają trwale zapamiętane w przeglądarce (`DEFCON_AudioStorage`).
                 </p>
-
-                <div class="flex-row" style="margin-bottom: 10px;">
-                    <button class="btn-primary" onclick="document.getElementById('audioFileInput').click()">WYBIERZ 9 PLIKÓW MP3</button>
-                    <button class="btn-mini" onclick="clearAudioDB()" style="color: var(--accent-red);">WYCZYŚĆ DB</button>
-                </div>
-                <input type="file" id="audioFileInput" multiple accept="audio/mp3,audio/mpeg" onchange="handleAudioFilesUpload(event)">
-
-                <div class="audio-bank-grid" id="audioBankGrid">
-                    <!-- Wygenerowane dynamicznie -->
-                </div>
-
-                <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem;">
-                    <div>Status odtwarzacza: <span id="playerStatusState" style="color: #38bdf8;">BEZCZYNNY</span></div>
-                    <div>Głośność: <input type="range" id="masterVolume" min="0" max="1" step="0.05" value="0.8" style="width: 80px; vertical-align: middle;"></div>
-                </div>
-                <div style="margin-top: 8px; display: flex; gap: 5px;">
-                    <button class="btn-mini" onclick="stopAllAudio()" style="background: #7f1d1d; color: #fff; width: 100%;">STOP AUDIO</button>
-                </div>
             </div>
 
-            <!-- Terminal MOLINK -->
+            <!-- Dziennik Zdarzeń Operacyjnych ZULU -->
             <div class="panel">
-                <div class="panel-title"><span>Terminal Gorącej Linii (MOLINK)</span></div>
-                <div class="terminal-box" id="molinkTerminal">
-                    [00:00:00] SYSTEM MOLINK ONLINE. NASŁUCH KANAŁU WASZYNGTON-MOSKWA...<br>
-                    [00:00:01] BRAK ANOMALII DYPLOMATYCZNYCH. LINIA BEZPIECZNA.
+                <div class="panel-header">
+                    <span class="panel-title">Dziennik Zdarzeń Operacyjnych (ZULU)</span>
+                    <button class="btn" onclick="clearEventLog()" style="padding:3px 7px; font-size:0.65rem;">WYCZYŚĆ LOG</button>
                 </div>
-                <div class="flex-row">
-                    <button class="btn-primary" style="font-size: 0.75rem; width: 100%;" onclick="sendMolinkQuery()">ODCZYTAJ DEPESZĘ</button>
-                </div>
-            </div>
 
-            <!-- Generator EAM / SKYKING -->
-            <div class="panel">
-                <div class="panel-title"><span>Generator EAM / SKYKING</span></div>
-                <div style="background: #020617; border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 10px; color: var(--accent-yellow);" id="eamDisplay">
-                    Oczekiwanie na komunikat radiowy EAM...
+                <div class="log-container" id="eventLogContainer">
+                    <!-- Logi operacyjne -->
                 </div>
-                <div class="flex-row">
-                    <button class="btn-mini" onclick="generateNewEAM()" style="width: 50%;">NOWY SKYKING</button>
-                    <button class="btn-mini" onclick="speakEAM()" style="width: 50%;">NADAJ GŁOSEM HF</button>
+
+                <div class="note-input-row">
+                    <input type="text" id="officerNoteInput" class="note-input" placeholder="Wpisz notatkę oficera dyżurnego..." onkeydown="if(event.key==='Enter') addOfficerNote()">
+                    <button class="btn btn-cyan" onclick="addOfficerNote()">DODAJ WPIS</button>
                 </div>
             </div>
+        </section>
 
-            <!-- Konsola SIOP / PAL / Two-Man Rule -->
-            <div class="panel" style="border-color: var(--accent-red);">
-                <div class="panel-title" style="color: var(--accent-red);"><span>Konsola SIOP & Autoryzacja PAL</span></div>
-                <div class="siop-grid" style="margin-bottom: 12px;">
-                    <div class="siop-card">
-                        <div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 5px;">KARTA „THE BISCUIT”</div>
-                        <div id="biscuitCode" style="font-size: 0.85rem; color: var(--accent-yellow); font-weight: bold;">[ ZABLOKOWANE ]</div>
-                        <button class="btn-mini" style="margin-top: 5px;" onclick="revealBiscuit()">ZERWIJ PLOMBĘ</button>
-                    </div>
-                    <div class="siop-card">
-                        <div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 5px;">BLOKADA PAL</div>
-                        <div id="palStatus" style="font-size: 0.85rem; color: var(--accent-red);">ZABLOKOWANE</div>
-                        <button class="btn-mini" style="margin-top: 5px;" onclick="unlockPAL()">ODBLOKUJ PAL</button>
-                    </div>
-                </div>
+    </main>
 
-                <div style="margin-bottom: 12px; display: flex; gap: 10px;">
-                    <button class="btn-primary" id="keyAlpha" style="flex: 1; font-size: 0.7rem;" onclick="turnKey('alpha')">KLUCZ ALFA: OFF</button>
-                    <button class="btn-primary" id="keyBravo" style="flex: 1; font-size: 0.7rem;" onclick="turnKey('bravo')">KLUCZ BRAVO: OFF</button>
-                </div>
-
-                <button class="btn-launch" id="launchBtn" onclick="executeSIOPLaunch()">AUTORYZUJ UDERZENIE ODWETOWE (SIOP)</button>
-            </div>
-
-            <!-- Dziennik Zdarzeń -->
-            <div class="panel">
-                <div class="panel-title">
-                    <span>Dziennik Operacyjny</span>
-                    <button class="btn-mini" onclick="clearLogs()">WYCZYŚĆ</button>
-                </div>
-                <div class="log-box" id="logBox">
-                    <div class="log-entry"><span class="log-time">[00:00:00 ZULU]</span> System zainicjalizowany poprawnie.</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-<script>
-    // --- ZEGAR ZULU ---
-    setInterval(() => {
-        const now = new Date();
-        const utc = now.toUTCString().split(' ')[4];
-        document.getElementById('zuluClock').innerText = `UTC ${utc} ZULU`;
-    }, 1000);
-
-    // --- STAN SYMULATORA ---
-    let currentDefcon = 3;
-    let isManualMode = false;
-    let audioFilesDB = {}; // Przechowuje Blob lub ObjectURL dla defcon_X_alert i defcon_X_announcment
-    let currentAudioElement = null;
-    let keyAlphaTurned = false;
-    let keyBravoTurned = false;
-    let palUnlocked = false;
-    let biscuitRevealed = false;
-    let currentBiscuitCode = "";
-
-    // --- INDEXED DB DLA PLIKÓW AUDIO ---
-    let db;
-    const dbName = "DEFCON_AudioStorage_DB";
-    const storeName = "mp3files";
-
-    function initIndexedDB() {
-        const request = indexedDB.open(dbName, 1);
-        request.onerror = (e) => console.error("Błąd IndexedDB:", e);
-        request.onsuccess = (e) => {
-            db = e.target.result;
-            loadAllAudioFromDB();
-        };
-        request.onupgradeneeded = (e) => {
-            db = e.target.result;
-            if (!db.objectStoreNames.contains(storeName)) {
-                db.createObjectStore(storeName);
+    <script>
+        /* =========================================================================
+           1. DANE KONFIGURACYJNE POZIOMÓW DEFCON I 5 RODZAJÓW SIŁ ZBROJNYCH
+           ========================================================================= */
+        const DEFCON_CONFIG = {
+            5: {
+                codename: "FADE OUT",
+                color: "#3b82f6",
+                summary: "Standardowa gotowość czasu pokoju. Brak bezpośrednich zagrożeń strategicznych. Systemy wczesnego ostrzegania pracują w trybie rutynowej obserwacji.",
+                branches: [
+                    { name: "Siły Rakietowe (ICBM Minuteman III)", status: "RUTYNOWY DYŻUR", color: "#3b82f6" },
+                    { name: "Flota Podwodna (SSBN Ohio)", status: "PATROLE PLANOWE", color: "#3b82f6" },
+                    { name: "Lotnictwo Strategiczne (B-52H / B-2A)", status: "W BAZACH STAŁYCH", color: "#3b82f6" },
+                    { name: "Obrona Kosmiczna (NORAD / SBIRS)", status: "DOZÓR CIĄGŁY", color: "#10b981" },
+                    { name: "Cyberdowództwo (USCYBERCOM)", status: "MONITORING SIECI", color: "#10b981" }
+                ]
+            },
+            4: {
+                codename: "DOUBLE TAKE",
+                color: "#10b981",
+                summary: "Podwyższona czujność wywiadowcza i wzmocnione środki bezpieczeństwa kontrwywiadowczego. Wzmożony nasłuch pasm radiowych HF oraz analiza satelitarna.",
+                branches: [
+                    { name: "Siły Rakietowe (ICBM Minuteman III)", status: "WZMOCNIONA OCHRONA", color: "#10b981" },
+                    { name: "Flota Podwodna (SSBN Ohio)", status: "GOTOWOŚĆ ŁĄCZNOŚCI VLF", color: "#10b981" },
+                    { name: "Lotnictwo Strategiczne (B-52H / B-2A)", status: "PRZEGLĄDY BOJOWE", color: "#10b981" },
+                    { name: "Obrona Kosmiczna (NORAD / SBIRS)", status: "ZAGĘSZCZONY SKAN", color: "#eab308" },
+                    { name: "Cyberdowództwo (USCYBERCOM)", status: "AUDYT INFRASTRUKTURY", color: "#eab308" }
+                ]
+            },
+            3: {
+                codename: "ROUND HOUSE",
+                color: "#eab308",
+                summary: "Podwyższona gotowość bojowa. Siły Powietrzne gotowe do mobilizacji w ciągu 15 minut. Cała komunikacja sztabowa przechodzi na utajnione protokoły szyfrowane.",
+                branches: [
+                    { name: "Siły Rakietowe (ICBM Minuteman III)", status: "PODWÓJNE OBSADY SILOSÓW", color: "#eab308" },
+                    { name: "Flota Podwodna (SSBN Ohio)", status: "WYJŚCIE Z PORTÓW", color: "#eab308" },
+                    { name: "Lotnictwo Strategiczne (B-52H / B-2A)", status: "GOTOWOŚĆ 15 MIN", color: "#f97316" },
+                    { name: "Obrona Kosmiczna (NORAD / SBIRS)", status: " ŚLEDZENIE AKTYWNE", color: "#eab308" },
+                    { name: "Cyberdowództwo (USCYBERCOM)", status: "OBRONA AKTYWNA", color: "#f97316" }
+                ]
+            },
+            2: {
+                codename: "FAST PACE",
+                color: "#f97316",
+                summary: "Krok od wojny nuklearnej. Siły zbrojne gotowe do rozmieszczenia i walki w mniej niż 6 godzin. Bombowce strategiczne na pasach startowych, E-4B Nightwatch w powietrzu.",
+                branches: [
+                    { name: "Siły Rakietowe (ICBM Minuteman III)", status: "ŻYROSKOPY AKTYWNE", color: "#f97316" },
+                    { name: "Flota Podwodna (SSBN Ohio)", status: "GŁĘBINA BOJOWA", color: "#f97316" },
+                    { name: "Lotnictwo Strategiczne (B-52H / B-2A)", status: "DYŻUR W POWIETRZU", color: "#ef4444" },
+                    { name: "Obrona Kosmiczna (NORAD / SBIRS)", status: "ALARM PRZECHWYTUJĄCY", color: "#ef4444" },
+                    { name: "Cyberdowództwo (USCYBERCOM)", status: "OPERACJE OFENSYWNE", color: "#ef4444" }
+                ]
+            },
+            1: {
+                codename: "COCKED PISTOL",
+                color: "#ef4444",
+                summary: "MAKSYMALNA GOTOWOŚĆ BOJOWA. Bezpośrednie i nieuchronne zagrożenie wojną termojądrową. Siły strategiczne oczekują na autoryzację kodów PAL i rozkaz SIOP.",
+                branches: [
+                    { name: "Siły Rakietowe (ICBM Minuteman III)", status: "GOTOWOŚĆ STARTOWA T-0", color: "#ef4444" },
+                    { name: "Flota Podwodna (SSBN Ohio)", status: "LUKI STARTOWE OTWARTE", color: "#ef4444" },
+                    { name: "Lotnictwo Strategiczne (B-52H / B-2A)", status: "W DRODZE DO RUBIEŻY", color: "#ef4444" },
+                    { name: "Obrona Kosmiczna (NORAD / SBIRS)", status: "OBRONA ABM AKTYWNA", color: "#ef4444" },
+                    { name: "Cyberdowództwo (USCYBERCOM)", status: "PEŁNE UDERZENIE CYBER", color: "#ef4444" }
+                ]
             }
         };
-    }
 
-    function saveAudioToDB(key, fileBlob) {
-        if (!db) return;
-        const transaction = db.transaction([storeName], "readwrite");
-        const store = transaction.objectStore(storeName);
-        store.put(fileBlob, key);
-        transaction.oncomplete = () => {
-            loadAllAudioFromDB();
+        /* =========================================================================
+           2. STAN GLOBALNY SYMULATORA
+           ========================================================================= */
+        let currentDefcon = 5;
+        let isAutoMode = true;
+        let isMuted = false;
+        let masterVolume = 0.85;
+
+        /* =========================================================================
+           3. SYSTEM AUDIO MP3 + TRWAŁA PAMIĘĆ INDEXEDDB (DEFCON_AudioStorage)
+           ========================================================================= */
+        const DB_NAME = "DEFCON_AudioStorage";
+        const STORE_NAME = "audio_files";
+        let idbInstance = null;
+
+        // Dokładne nazwy plików użytkownika (9 plików MP3)
+        const EXPECTED_FILES = {
+            "defcon 1 alert.mp3": { level: 1, type: "alert" },
+            "defcon 1 announcment.mp3": { level: 1, type: "announcment" },
+            "defcon 2 alert.mp3": { level: 2, type: "alert" },
+            "defcon 2 announcment.mp3": { level: 2, type: "announcment" },
+            "defcon 3 alert.mp3": { level: 3, type: "alert" },
+            "defcon 3 announcment.mp3": { level: 3, type: "announcment" },
+            "defcon 4 alert.mp3": { level: 4, type: "alert" },
+            "defcon 4 announcment.mp3": { level: 4, type: "announcment" },
+            "defcon 5 alert.mp3": { level: 5, type: "alert" }
         };
-    }
 
-    function loadAllAudioFromDB() {
-        if (!db) return;
-        const transaction = db.transaction([storeName], "readonly");
-        const store = transaction.objectStore(storeName);
-        const request = store.getAllKeys();
-        request.onsuccess = () => {
-            const keys = request.result;
-            let loadedCount = 0;
-            keys.forEach(key => {
-                const getReq = store.get(key);
-                getReq.onsuccess = () => {
-                    const blob = getReq.result;
-                    audioFilesDB[key] = URL.createObjectURL(blob);
-                    loadedCount++;
-                    updateAudioBankUI();
-                };
+        // Pamięć podręczna ObjectURL: audioBank[level] = { alert: url, announcment: url, alertFromDB: bool, annFromDB: bool }
+        const audioBank = {
+            1: { alert: "./defcon 1 alert.mp3", announcment: "./defcon 1 announcment.mp3", alertLoaded: false, annLoaded: false },
+            2: { alert: "./defcon 2 alert.mp3", announcment: "./defcon 2 announcment.mp3", alertLoaded: false, annLoaded: false },
+            3: { alert: "./defcon 3 alert.mp3", announcment: "./defcon 3 announcment.mp3", alertLoaded: false, annLoaded: false },
+            4: { alert: "./defcon 4 alert.mp3", announcment: "./defcon 4 announcment.mp3", alertLoaded: false, annLoaded: false },
+            5: { alert: "./defcon 5 alert.mp3", announcment: null, alertLoaded: false, annLoaded: false }
+        };
+
+        let activeAudioObj = null;
+        let audioSequenceSession = 0;
+
+        function initIndexedDB() {
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME);
+                }
+            };
+            req.onsuccess = (e) => {
+                idbInstance = e.target.result;
+                restoreAudioFromIndexedDB();
+            };
+            req.onerror = () => {
+                logEvent("Ostrzeżenie: Nie udało się otworzyć bazy IndexedDB dla plików audio.", "warn");
+            };
+        }
+
+        function saveBlobToIndexedDB(filename, blob) {
+            if (!idbInstance) return;
+            const tx = idbInstance.transaction([STORE_NAME], "readwrite");
+            tx.objectStore(STORE_NAME).put(blob, filename);
+        }
+
+        function restoreAudioFromIndexedDB() {
+            if (!idbInstance) return;
+            const tx = idbInstance.transaction([STORE_NAME], "readonly");
+            const store = tx.objectStore(STORE_NAME);
+            const keysReq = store.getAllKeys();
+
+            keysReq.onsuccess = () => {
+                const keys = keysReq.result || [];
+                if (keys.length === 0) {
+                    renderAudioBankList();
+                    return;
+                }
+                let processed = 0;
+                keys.forEach((filename) => {
+                    const getReq = store.get(filename);
+                    getReq.onsuccess = () => {
+                        const blob = getReq.result;
+                        if (blob && EXPECTED_FILES[filename]) {
+                            const info = EXPECTED_FILES[filename];
+                            const objUrl = URL.createObjectURL(blob);
+                            if (info.type === "alert") {
+                                audioBank[info.level].alert = objUrl;
+                                audioBank[info.level].alertLoaded = true;
+                            } else {
+                                audioBank[info.level].announcment = objUrl;
+                                audioBank[info.level].annLoaded = true;
+                            }
+                        }
+                        processed++;
+                        if (processed === keys.length) {
+                            renderAudioBankList();
+                            logEvent(`Przywrócono ${ countLoadedMP3() }/9 plików MP3 z trwałej bazy IndexedDB.`, "ok");
+                        }
+                    };
+                });
+            };
+        }
+
+        function clearIndexedDBAudio() {
+            if (!idbInstance) return;
+            const tx = idbInstance.transaction([STORE_NAME], "readwrite");
+            tx.objectStore(STORE_NAME).clear();
+            tx.oncomplete = () => {
+                for (let lvl = 1; lvl <= 5; lvl++) {
+                    audioBank[lvl].alert = `./defcon ${lvl} alert.mp3`;
+                    audioBank[lvl].alertLoaded = false;
+                    if (lvl < 5) {
+                        audioBank[lvl].announcment = `./defcon ${lvl} announcment.mp3`;
+                        audioBank[lvl].annLoaded = false;
+                    }
+                }
+                renderAudioBankList();
+                logEvent("Wyczyszczono zapamiętane pliki MP3 z bazy przeglądarki IndexedDB.", "warn");
+            };
+        }
+
+        function countLoadedMP3() {
+            let count = 0;
+            for (let lvl = 1; lvl <= 5; lvl++) {
+                if (audioBank[lvl].alertLoaded) count++;
+                if (lvl < 5 && audioBank[lvl].annLoaded) count++;
+            }
+            return count;
+        }
+
+        function normalizeFileName(rawName) {
+            const clean = rawName.toLowerCase().trim().replace(/_/g, " ");
+            for (let lvl = 1; lvl <= 5; lvl++) {
+                if (clean.includes(`defcon ${lvl}`) && clean.includes("alert")) {
+                    return `defcon ${lvl} alert.mp3`;
+                }
+                if (lvl < 5 && clean.includes(`defcon ${lvl}`) && (clean.includes("announcment") || clean.includes("announcement"))) {
+                    return `defcon ${lvl} announcment.mp3`;
+                }
+            }
+            return null;
+        }
+
+        function handleFilesSelected(event) {
+            const files = Array.from(event.target.files || []);
+            let matched = 0;
+
+            files.forEach(file => {
+                const canonical = normalizeFileName(file.name);
+                if (canonical && EXPECTED_FILES[canonical]) {
+                    const info = EXPECTED_FILES[canonical];
+                    const objUrl = URL.createObjectURL(file);
+                    if (info.type === "alert") {
+                        audioBank[info.level].alert = objUrl;
+                        audioBank[info.level].alertLoaded = true;
+                    } else {
+                        audioBank[info.level].announcment = objUrl;
+                        audioBank[info.level].annLoaded = true;
+                    }
+                    saveBlobToIndexedDB(canonical, file);
+                    matched++;
+                }
             });
-        };
-    }
 
-    function clearAudioDB() {
-        if (!db) return;
-        const transaction = db.transaction([storeName], "readwrite");
-        const store = transaction.objectStore(storeName);
-        store.clear();
-        transaction.oncomplete = () => {
-            audioFilesDB = {};
-            updateAudioBankUI();
-            addLog("Wyczyszczono pamięć audio IndexedDB.", "alert");
-        };
-    }
+            renderAudioBankList();
+            logEvent(`Załadowano i zapisano w IndexedDB: ${matched} plików audio (łącznie ${countLoadedMP3()}/9).`, "ok");
+        }
 
-    // Inicjalizacja UI Banku Audio
-    const audioItemsConfig = [
-        { key: 'defcon_1_alert', label: 'defcon 1 alert.mp3' },
-        { key: 'defcon_1_announcment', label: 'defcon 1 announcment.mp3' },
-        { key: 'defcon_2_alert', label: 'defcon 2 alert.mp3' },
-        { key: 'defcon_2_announcment', label: 'defcon 2 announcment.mp3' },
-        { key: 'defcon_3_alert', label: 'defcon 3 alert.mp3' },
-        { key: 'defcon_3_announcment', label: 'defcon 3 announcment.mp3' },
-        { key: 'defcon_4_alert', label: 'defcon 4 alert.mp3' },
-        { key: 'defcon_4_announcment', label: 'defcon 4 announcment.mp3' },
-        { key: 'defcon_5_alert', label: 'defcon 5 alert.mp3' }
-    ];
+        function renderAudioBankList() {
+            const container = document.getElementById("audioBankList");
+            container.innerHTML = "";
+            const totalLoaded = countLoadedMP3();
 
-    function updateAudioBankUI() {
-        const grid = document.getElementById('audioBankGrid');
-        grid.innerHTML = '';
-        let loadedCount = 0;
+            document.getElementById("dbStatusBadge").innerText = `PAMIĘĆ DB: ${totalLoaded}/9 PLIKÓW`;
+            document.getElementById("topUploadBtn").innerText = `📁 WGRAJ MP3 (${totalLoaded}/9)`;
 
-        audioItemsConfig.forEach(item => {
-            const isLoaded = !!audioFilesDB[item.key];
-            if (isLoaded) loadedCount++;
+            for (let lvl = 1; lvl <= 5; lvl++) {
+                const item = audioBank[lvl];
+                const row = document.createElement("div");
+                row.className = "audio-level-row";
 
-            const div = document.createElement('div');
-            div.className = `audio-item ${isLoaded ? 'loaded' : ''}`;
-            div.innerHTML = `
-                <div class="audio-item-header">
-                    <span>${item.label}</span>
-                    <span class="audio-status ${isLoaded ? 'ok' : ''}">${isLoaded ? '[ZAPAMIĘTANY DB]' : '[BRAK]'}</span>
-                </div>
-                <div class="audio-controls-row">
-                    <button class="btn-mini" onclick="testSingleAudio('${item.key}')" ${!isLoaded ? 'disabled style="opacity:0.5"' : ''}>▶ TEST</button>
-                </div>
-            `;
-            grid.appendChild(div);
-        });
+                const alertTag = item.alertLoaded
+                    ? `<span class="db-tag saved">[ZAPAMIĘTANY DB]</span>`
+                    : `<span class="db-tag">[ŚCIEŻKA LOKALNA]</span>`;
 
-        document.getElementById('audioCountBadge').innerText = `DB: ${loadedCount}/9`;
-    }
+                const annHtml = lvl < 5
+                    ? `<div class="file-badge">🗣️ <code>defcon ${lvl} announcment.mp3</code> ${item.annLoaded ? '<span class="db-tag saved">[ZAPAMIĘTANY DB]</span>' : '<span class="db-tag">[ŚCIEŻKA LOKALNA]</span>'}</div>`
+                    : `<div class="file-badge" style="color:var(--text-muted);">ℹ️ Poziom 5 nie posiada słownego ogłoszenia</div>`;
 
-    function handleAudioFilesUpload(event) {
-        const files = event.target.files;
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            const name = file.name.toLowerCase();
-
-            // Dopasowanie nazwy pliku do klucza bazy
-            let matchedKey = null;
-            if (name.includes('defcon 1 alert') || name.includes('defcon_1_alert')) matchedKey = 'defcon_1_alert';
-            else if (name.includes('defcon 1 announcment') || name.includes('defcon_1_announcment')) matchedKey = 'defcon_1_announcment';
-            else if (name.includes('defcon 2 alert') || name.includes('defcon_2_alert')) matchedKey = 'defcon_2_alert';
-            else if (name.includes('defcon 2 announcment') || name.includes('defcon_2_announcment')) matchedKey = 'defcon_2_announcment';
-            else if (name.includes('defcon 3 alert') || name.includes('defcon_3_alert')) matchedKey = 'defcon_3_alert';
-            else if (name.includes('defcon 3 announcment') || name.includes('defcon_3_announcment')) matchedKey = 'defcon_3_announcment';
-            else if (name.includes('defcon 4 alert') || name.includes('defcon_4_alert')) matchedKey = 'defcon_4_alert';
-            else if (name.includes('defcon 4 announcment') || name.includes('defcon_4_announcment')) matchedKey = 'defcon_4_announcment';
-            else if (name.includes('defcon 5 alert') || name.includes('defcon_5_alert')) matchedKey = 'defcon_5_alert';
-
-            if (matchedKey) {
-                saveAudioToDB(matchedKey, file);
+                row.innerHTML = `
+                    <div class="audio-files-pair">
+                        <strong style="color:${DEFCON_CONFIG[lvl].color};">DEFCON ${lvl} (${DEFCON_CONFIG[lvl].codename})</strong>
+                        <div class="file-badge">🚨 <code>defcon ${lvl} alert.mp3</code> ${alertTag}</div>
+                        ${annHtml}
+                    </div>
+                    <button class="btn" onclick="playDefconSequence(${lvl})" style="padding:5px 9px; font-size:0.68rem;">▶ TEST</button>
+                `;
+                container.appendChild(row);
             }
         }
-        addLog("Wgrano i zapisano pliki audio do pamięci IndexedDB.");
-    }
 
-    function testSingleAudio(key) {
-        const url = audioFilesDB[key];
-        if (!url) return;
-        if (currentAudioElement) currentAudioElement.pause();
-        currentAudioElement = new Audio(url);
-        currentAudioElement.volume = parseFloat(document.getElementById('masterVolume').value);
-        currentAudioElement.play().catch(e => console.log("Odtwarzanie zablokowane:", e));
-        document.getElementById('playerStatusState').innerText = `TEST: ${key}`;
-        currentAudioElement.onended = () => {
-            document.getElementById('playerStatusState').innerText = 'BEZCZYNNY';
+        function stopAllAudio() {
+            audioSequenceSession++;
+            if (activeAudioObj) {
+                activeAudioObj.pause();
+                activeAudioObj.currentTime = 0;
+                activeAudioObj = null;
+            }
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            document.getElementById("audioSequenceText").innerText = "ZATRZYMANO";
+            document.getElementById("audioStagePill").innerText = "STOP";
+        }
+
+        function updateVolume(val) {
+            masterVolume = parseInt(val, 10) / 100;
+            document.getElementById("volLabel").innerText = `${val}%`;
+            if (activeAudioObj) {
+                activeAudioObj.volume = isMuted ? 0 : masterVolume;
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const btn = document.getElementById("muteToggleBtn");
+            btn.innerText = isMuted ? "🔇 AUDIO: WYCISZONE" : "🔊 AUDIO: WŁ.";
+            if (activeAudioObj) {
+                activeAudioObj.volume = isMuted ? 0 : masterVolume;
+            }
+        }
+
+        // Awaryjny syntezator Web Audio API (gdy plik MP3 nie został jeszcze wgrany ani znaleziony lokalnie)
+        function playFallbackSynthAlert(level, onDone) {
+            if (isMuted) {
+                if (onDone) onDone();
+                return;
+            }
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                const baseFreq = level === 1 ? 880 : level === 2 ? 720 : level === 3 ? 580 : 440;
+                osc.type = level <= 2 ? "sawtooth" : "triangle";
+                osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(baseFreq * 1.35, ctx.currentTime + 0.45);
+                osc.frequency.linearRampToValueAtTime(baseFreq, ctx.currentTime + 0.9);
+
+                gain.gain.setValueAtTime(masterVolume * 0.25, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 1.0);
+                setTimeout(() => {
+                    ctx.close();
+                    if (onDone) onDone();
+                }, 1050);
+            } catch (e) {
+                if (onDone) onDone();
+            }
+        }
+
+        // GŁÓWNA FUNKCJA SEKWENCYJNEGO ODTWARZANIA: ETAP 1 (ALARM) -> ETAP 2 (OGŁOSZENIE)
+        function playDefconSequence(level) {
+            stopAllAudio();
+            if (isMuted) return;
+
+            const session = ++audioSequenceSession;
+            const entry = audioBank[level];
+            const seqText = document.getElementById("audioSequenceText");
+            const stagePill = document.getElementById("audioStagePill");
+
+            seqText.innerText = `DEFCON ${level}: Odtwarzanie alarmu (defcon ${level} alert.mp3)...`;
+            stagePill.innerText = level === 5 ? "ETAP 1/1: ALARM" : "ETAP 1/2: ALARM";
+
+            const alertAudio = new Audio(entry.alert);
+            alertAudio.volume = masterVolume;
+            activeAudioObj = alertAudio;
+
+            const proceedToAnnouncement = () => {
+                if (session !== audioSequenceSession) return;
+
+                // Poziom 5 nie posiada słownego ogłoszenia
+                if (level === 5 || !entry.announcment) {
+                    seqText.innerText = `DEFCON 5: Sekwencja alarmu zakończona.`;
+                    stagePill.innerText = "ZAKOŃCZONO";
+                    return;
+                }
+
+                seqText.innerText = `DEFCON ${level}: Ogłoszenie słowne (defcon ${level} announcment.mp3)...`;
+                stagePill.innerText = "ETAP 2/2: OGŁOSZENIE";
+
+                const annAudio = new Audio(entry.announcment);
+                annAudio.volume = masterVolume;
+                activeAudioObj = annAudio;
+
+                annAudio.onended = () => {
+                    if (session !== audioSequenceSession) return;
+                    seqText.innerText = `DEFCON ${level}: Sekwencja zakończona pomyślnie.`;
+                    stagePill.innerText = "ZAKOŃCZONO";
+                };
+
+                annAudio.onerror = () => {
+                    if (session !== audioSequenceSession) return;
+                    seqText.innerText = `Brak pliku 'defcon ${level} announcment.mp3' — użyj przycisku WGRAJ MP3.`;
+                    stagePill.innerText = "BRAK MP3";
+                };
+
+                annAudio.play().catch(() => {
+                    seqText.innerText = `Wymagana interakcja lub wgranie pliku 'defcon ${level} announcment.mp3'.`;
+                });
+            };
+
+            alertAudio.onended = proceedToAnnouncement;
+            alertAudio.onerror = () => {
+                if (session !== audioSequenceSession) return;
+                seqText.innerText = `Synteza awaryjna (wgraj 'defcon ${level} alert.mp3' dla oryginalnego dźwięku)...`;
+                playFallbackSynthAlert(level, proceedToAnnouncement);
+            };
+
+            alertAudio.play().catch(() => {
+                playFallbackSynthAlert(level, proceedToAnnouncement);
+            });
+        }
+
+        /* =========================================================================
+           4. STEROWANIE POZIOMEM DEFCON I SUWAKAMI RYZYKA
+           ========================================================================= */
+        function applyDefconLevel(level, playSound = true) {
+            const changed = (level !== currentDefcon);
+            currentDefcon = level;
+            const cfg = DEFCON_CONFIG[level];
+
+            const hero = document.getElementById("defconHero");
+            hero.className = `defcon-hero level-${level}`;
+
+            const numEl = document.getElementById("defconNumber");
+            numEl.innerText = `DEFCON ${level}`;
+            numEl.style.color = cfg.color;
+
+            const codeEl = document.getElementById("defconCodename");
+            codeEl.innerText = cfg.codename;
+            codeEl.style.color = cfg.color;
+
+            document.getElementById("defconSummary").innerText = cfg.summary;
+
+            // Zakładki 1..5
+            for (let i = 1; i <= 5; i++) {
+                const tab = document.getElementById(`tabDef${i}`);
+                tab.className = i === level ? `defcon-tab active-${i}` : "defcon-tab";
+            }
+
+            // Telemetria 5 rodzajów sił zbrojnych
+            const brContainer = document.getElementById("branchesContainer");
+            brContainer.innerHTML = "";
+            cfg.branches.forEach(b => {
+                const row = document.createElement("div");
+                row.className = "branch-row";
+                row.innerHTML = `
+                    <span class="branch-name">${b.name}</span>
+                    <span class="branch-badge" style="background:${b.color}22; color:${b.color}; border:1px solid ${b.color};">${b.status}</span>
+                `;
+                brContainer.appendChild(row);
+            });
+
+            if (changed) {
+                logEvent(`ZMIANA GOTOWOŚCI BOJOWEJ: Wprowadzono poziom DEFCON ${level} (${cfg.codename}).`, level <= 2 ? "crit" : "warn");
+                if (playSound) {
+                    playDefconSequence(level);
+                }
+                if (level <= 2) {
+                    generateEAM(level === 1);
+                }
+                if (level === 1) {
+                    spawnTestBallisticArc();
+                }
+            }
+
+            evaluateSiopReadiness();
+        }
+
+        function manualSelectDefcon(level) {
+            if (isAutoMode) {
+                isAutoMode = false;
+                updateModeUI();
+                logEvent("Przełączono na tryb RĘCZNY wyboru poziomu DEFCON.", "warn");
+            }
+            applyDefconLevel(level, true);
+        }
+
+        function toggleControlMode() {
+            isAutoMode = !isAutoMode;
+            updateModeUI();
+            if (isAutoMode) {
+                onSlidersChanged();
+            }
+        }
+
+        function updateModeUI() {
+            const lbl = document.getElementById("controlModeLabel");
+            lbl.innerText = isAutoMode ? "AUTOMATYCZNY" : "RĘCZNY";
+            lbl.style.color = isAutoMode ? "#34d399" : "#f59e0b";
+        }
+
+        function onSlidersChanged() {
+            const v1 = parseInt(document.getElementById("sl1").value, 10);
+            const v2 = parseInt(document.getElementById("sl2").value, 10);
+            const v3 = parseInt(document.getElementById("sl3").value, 10);
+            const v4 = parseInt(document.getElementById("sl4").value, 10);
+            const v5 = parseInt(document.getElementById("sl5").value, 10);
+
+            document.getElementById("slVal1").innerText = `${v1}%`;
+            document.getElementById("slVal2").innerText = `${v2}%`;
+            document.getElementById("slVal3").innerText = `${v3}%`;
+            document.getElementById("slVal4").innerText = `${v4}%`;
+            document.getElementById("slVal5").innerText = `${v5}%`;
+
+            // Ważony indeks napięcia
+            const tension = Math.round(v1 * 0.15 + v2 * 0.18 + v3 * 0.17 + v4 * 0.22 + v5 * 0.28);
+            document.getElementById("tensionBarFill").style.width = `${tension}%`;
+
+            let calcLevel = 5;
+            if (tension >= 86) calcLevel = 1;
+            else if (tension >= 68) calcLevel = 2;
+            else if (tension >= 45) calcLevel = 3;
+            else if (tension >= 22) calcLevel = 4;
+
+            document.getElementById("tensionIndexText").innerText = `${tension}% (SUGEROWANY DEFCON ${calcLevel})`;
+
+            if (isAutoMode && calcLevel !== currentDefcon) {
+                applyDefconLevel(calcLevel, true);
+            }
+        }
+
+        function setSlidersValues(arr) {
+            for (let i = 0; i < 5; i++) {
+                document.getElementById(`sl${i + 1}`).value = Math.max(0, Math.min(100, arr[i]));
+            }
+            if (!isAutoMode) {
+                isAutoMode = true;
+                updateModeUI();
+            }
+            onSlidersChanged();
+        }
+
+        function resetSliders() {
+            setSlidersValues([10, 10, 15, 5, 5]);
+            logEvent("Zresetowano wskaźniki ryzyka geopolitycznego do poziomu pokojowego.", "ok");
+        }
+
+        function runScenario(code) {
+            if (code === "adiz") {
+                logEvent("INCYDENT ADIZ: Formacja bombowców strategicznych naruszyła sektor identyfikacji powietrznej.", "warn");
+                setSlidersValues([25, 65, 55, 45, 35]);
+            } else if (code === "cyber") {
+                logEvent("ATAK CYBERNETYCZNY: Wykryto skoordynowane uderzenie na przemysłowe systemy SCADA i węzły łączności.", "warn");
+                setSlidersValues([95, 50, 70, 55, 40]);
+            } else if (code === "sbirs") {
+                logEvent("ALARM KOSMICZNY: Satelita wczesnego ostrzegania SBIRS-GEO oślepiony wiązką laserową nad Euroazją!", "crit");
+                setSlidersValues([70, 65, 80, 95, 75]);
+            } else if (code === "icbm") {
+                logEvent("ALARM BALISTYCZNY BMEWS: Wykryto mnogie sygnatury termiczne startu pocisków ICBM!", "crit");
+                setSlidersValues([90, 90, 95, 100, 100]);
+                spawnTestBallisticArc();
+            } else if (code === "peace") {
+                logEvent("POROZUMIENIE DYPLOMATYCZNE: Podpisano protokół deeskalacji i wznowiono inspekcje nuklearne.", "ok");
+                setSlidersValues([5, 8, 10, 5, 5]);
+            } else if (code === "random") {
+                const rnd = () => Math.floor(Math.random() * 95) + 5;
+                logEvent("LOSOWY INCYDENT: Nagła zmiana parametrów wywiadowczych w wielu teatrach działań.", "warn");
+                setSlidersValues([rnd(), rnd(), rnd(), rnd(), rnd()]);
+            }
+        }
+
+        /* =========================================================================
+           5. PROCEDURY NUKLEARNE: MOLINK, EAM/SKYKING, THE BISCUIT, PAL, TWO-MAN RULE
+           ========================================================================= */
+        const MOLINK_DILEMMAS = [
+            {
+                text: "[DEPESZA #01] WYKRYTO ANOMALIĘ TERMICZNĄ NA SYBERII. MOSKWA TWIERDZI, ŻE TO POŻAR GAZOCIĄGU, LECZ WIDMO IR PRZYPOMINA TEST SILNIKA RAKIETOWEGO.",
+                options: [
+                    { label: "A) Przyjmij wyjaśnienie i wyślij satelitę optycznego (Deeskalacja)", delta: -12 },
+                    { label: "B) Podnieś gotowość radarów BMEWS i żądaj inspekcji (Proporcjonalnie)", delta: +8 },
+                    { label: "C) Ogłoś alarm dla dywizjonów Minuteman III (Eskalacja)", delta: +22 }
+                ]
+            },
+            {
+                text: "[DEPESZA #02] UTRACONO ŁĄCZNOŚĆ VLF Z OKRĘTEM PODWODNYM USS OHIO NA PACYFIKU W POBLIŻU STREFY PATROLOWEJ PRZECIWNIKA.",
+                options: [
+                    { label: "A) Przekaż komunikat o awarii radioboju przez MOLINK (Deeskalacja)", delta: -10 },
+                    { label: "B) Wyślij samoloty ZOP P-8 Poseidon w rejon ostatniego kontaktu", delta: +10 },
+                    { label: "C) Odblokuj procedurę bojową dla reszty floty SSBN (Eskalacja)", delta: +25 }
+                ]
+            },
+            {
+                text: "[DEPESZA #03] SYSTEM NORAD ZGŁASZA 12 NADLATUJĄCYCH OBIEKTÓW Z KIERUNKU BIEGUNA PÓŁNOCNEGO. RADARY ZAHORYZONTALNE NIE POTWIERDZAJĄ ECHA.",
+                options: [
+                    { label: "A) Zweryfikuj taśmy symulacyjne komputerów NORAD (Błąd systemu)", delta: -18 },
+                    { label: "B) Poderwij dyżurne myśliwce i samolot E-4B Nightwatch", delta: +12 },
+                    { label: "C) Przekaż prezydentowi teczkę Nuclear Football (Eskalacja)", delta: +28 }
+                ]
+            },
+            {
+                text: "[DEPESZA #04] WYKRYTO PODZIEMNY WSTRZĄS SEJSMICZNY 5.8 MAGNITUDO W REJONIE POLIGONU NOWA ZIEMIA / LOP NOR.",
+                options: [
+                    { label: "A) Przeprowadź analizę izotopową przez stacje CTBTO (Deeskalacja)", delta: -8 },
+                    { label: "B) Wezwij ambasadora i wprowadź sankcje technologiczne", delta: +9 },
+                    { label: "C) Rozmieść bombowce B-2 Spirit w bazach wysuniętych (Eskalacja)", delta: +20 }
+                ]
+            }
+        ];
+
+        let currentDilemmaIndex = 0;
+
+        function renderMolinkDilemma(idx) {
+            const d = MOLINK_DILEMMAS[idx];
+            document.getElementById("molinkText").innerText = d.text;
+            const box = document.getElementById("molinkChoices");
+            box.innerHTML = "";
+            d.options.forEach((opt) => {
+                const btn = document.createElement("button");
+                btn.className = "dilemma-btn";
+                btn.innerText = opt.label;
+                btn.onclick = () => resolveMolinkChoice(opt);
+                box.appendChild(btn);
+            });
+        }
+
+        function triggerNewMolinkDilemma() {
+            currentDilemmaIndex = (currentDilemmaIndex + 1) % MOLINK_DILEMMAS.length;
+            renderMolinkDilemma(currentDilemmaIndex);
+            logEvent("MOLINK: Odebrano nową pilną depeszę dalekopisową na Gorącej Linii.", "warn");
+        }
+
+        function resolveMolinkChoice(opt) {
+            logEvent(`DECYZJA MOLINK: Wybrano wariant "${opt.label}" (zmiana napięcia: ${opt.delta > 0 ? '+' : ''}${opt.delta}%).`, opt.delta > 15 ? "crit" : "ok");
+            for (let i = 1; i <= 5; i++) {
+                const el = document.getElementById(`sl${i}`);
+                el.value = Math.max(0, Math.min(100, parseInt(el.value, 10) + opt.delta));
+            }
+            onSlidersChanged();
+            setTimeout(triggerNewMolinkDilemma, 600);
+        }
+
+        // Generator EAM / SKYKING
+        const NATO_PHONETIC = {
+            A: "ALFA", B: "BRAVO", C: "CHARLIE", D: "DELTA", E: "ECHO", F: "FOXTROT",
+            G: "GOLF", H: "HOTEL", I: "INDIA", J: "JULIETT", K: "KILO", L: "LIMA",
+            M: "MIKE", N: "NOVEMBER", O: "OSCAR", P: "PAPA", Q: "QUEBEC", R: "ROMEO",
+            S: "SIERRA", T: "TANGO", U: "UNIFORM", V: "VICTOR", W: "WHISKEY", X: "X-RAY",
+            Y: "YANKEE", Z: "ZULU", "0": "ZERO", "1": "ONE", "2": "TWO", "3": "THREE",
+            "4": "FOUR", "5": "FIVE", "6": "SIX", "7": "SEVEN", "8": "EIGHT", "9": "NINER"
         };
-    }
 
-    function stopAllAudio() {
-        if (currentAudioElement) {
-            currentAudioElement.pause();
-            currentAudioElement = null;
-        }
-        document.getElementById('playerStatusState').innerText = 'ZATRZYMANY';
-        addLog("Zatrzymano odtwarzanie audio.");
-    }
+        let currentEAMSpeechText = "";
 
-    // --- SEKWENCYJNE ODTWARZANIE DEFCON (ALERT -> ANNOUNCMENT) ---
-    function playDefconSequence(level) {
-        stopAllAudio();
-        const alertKey = `defcon_${level}_alert`;
-        const annKey = `defcon_${level}_announcment`;
+        function generateEAM(isSkyking = false) {
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let rawCode = "";
+            for (let i = 0; i < 26; i++) {
+                rawCode += chars[Math.floor(Math.random() * chars.length)];
+            }
+            const grouped = rawCode.match(/.{1,5}/g).join(" ");
+            const spokenGroups = rawCode.slice(0, 10).split("").map(c => NATO_PHONETIC[c]).join(", ");
 
-        const alertUrl = audioFilesDB[alertKey];
-        const annUrl = audioFilesDB[annKey];
-
-        const vol = parseFloat(document.getElementById('masterVolume').value);
-
-        if (!alertUrl) {
-            document.getElementById('playerStatusState').innerText = `BRAK PLIKU ${alertKey}`;
-            addLog(`Brak pliku alertu dla DEFCON ${level} w bazie DB.`, "alert");
-            return;
+            const box = document.getElementById("eamBox");
+            if (isSkyking) {
+                const codeWord = ["GRANITE", "IRONCLAD", "THUNDER", "VANGUARD", "COBALT"][Math.floor(Math.random() * 5)];
+                box.innerHTML = `<strong>[PRIORYTET FLASH // SKYKING]</strong><br>SKYKING, SKYKING, DO NOT ANSWER.<br>TIME ${new Date().getUTCMinutes()} ZULU • KOD: <strong>${codeWord}</strong><br>EAM: ${grouped}`;
+                currentEAMSpeechText = `Skyking, Skyking, do not answer. Codeword ${codeWord}. Authentication: ${spokenGroups}. Out.`;
+                logEvent(`EAM SKYKING: Wyemitowano rozkaz najwyższego priorytetu (${codeWord}).`, "crit");
+            } else {
+                box.innerHTML = `<strong>[KOMUNIKAT EAM // 26 ZNAKÓW]</strong><br>PREAMBUŁA: ${rawCode.slice(0, 6)}<br>TREŚĆ: ${grouped}<br>FONETYCZNIE: ${spokenGroups}...`;
+                currentEAMSpeechText = `All stations, Emergency Action Message follows. Preamble: ${spokenGroups}. Stand by.`;
+                logEvent("EAM: Wygenerowano nowy 26-znakowy szyfrogram Emergency Action Message.", "ok");
+            }
         }
 
-        document.getElementById('playerStatusState').innerText = `ETAP 1/2: DEFCON ${level} ALARM`;
-        currentAudioElement = new Audio(alertUrl);
-        currentAudioElement.volume = vol;
+        function transmitEAMVoice() {
+            if (!currentEAMSpeechText) generateEAM(false);
+            if (!('speechSynthesis' in window)) {
+                logEvent("Przeglądarka nie obsługuje syntezatora mowy Web Speech API.", "warn");
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(currentEAMSpeechText);
+            utter.lang = "en-US";
+            utter.rate = 0.92;
+            utter.pitch = 0.85;
+            utter.volume = isMuted ? 0 : masterVolume;
+            window.speechSynthesis.speak(utter);
+            logEvent("RADIO HF (11175 kHz): Nadano szyfrogram głosowy EAM w eter.", "ok");
+        }
 
-        currentAudioElement.play().catch(e => console.log("Audio err:", e));
+        // Konsola SIOP: The Biscuit, PAL i synchroniczna Zasada Dwóch Kluczy (3 sekundy)
+        let generatedGoldCode = null;
+        let isPalUnlocked = false;
+        let keyAlphaTime = 0;
+        let keyBravoTime = 0;
+        let twoManSynced = false;
+        let syncInterval = null;
 
-        currentAudioElement.onended = () => {
-            // Jeśli to poziom 5, nie ma ogłoszenia słownego
-            if (level === 5 || !annUrl) {
-                document.getElementById('playerStatusState').innerText = 'ZAKOŃCZONO SEKWENCJĘ';
+        function breakBiscuitSeal() {
+            const hex = "ABCDEF23456789";
+            let code = "SAS-";
+            for (let i = 0; i < 6; i++) code += hex[Math.floor(Math.random() * hex.length)];
+            generatedGoldCode = code;
+            document.getElementById("biscuitDisplay").innerText = code;
+            document.getElementById("palCodeInput").value = code;
+            logEvent(`KARTA "THE BISCUIT": Zerwano plombę bezpieczeństwa. Odczytano Złoty Kod: ${code}.`, "warn");
+        }
+
+        function verifyAndUnlockPAL() {
+            const inputVal = document.getElementById("palCodeInput").value.trim().toUpperCase();
+            if (!generatedGoldCode || inputVal !== generatedGoldCode) {
+                logEvent("BŁĄD AUTORYZACJI PAL: Najpierw zerwij plombę z karty 'The Biscuit' i wprowadź poprawny Złoty Kod SAS!", "crit");
+                return;
+            }
+            isPalUnlocked = true;
+            const badge = document.getElementById("palBadgeTop");
+            badge.innerText = "PAL: ODBLOKOWANY";
+            badge.style.background = "rgba(239, 68, 68, 0.25)";
+            badge.style.color = "#fca5a5";
+            badge.style.borderColor = "#ef4444";
+            logEvent("PERMISSIVE ACTION LINK (PAL): Blokada głowic termojądrowych została zwolniona!", "crit");
+            evaluateSiopReadiness();
+        }
+
+        function turnLaunchKey(officer) {
+            const now = performance.now();
+            if (officer === "alpha") {
+                keyAlphaTime = now;
+                const btn = document.getElementById("btnKeyAlpha");
+                btn.innerText = "🔑 ALFA: PRZEKRĘCONY";
+                btn.className = "btn btn-amber";
+            } else {
+                keyBravoTime = now;
+                const btn = document.getElementById("btnKeyBravo");
+                btn.innerText = "🔑 BRAVO: PRZEKRĘCONY";
+                btn.className = "btn btn-amber";
+            }
+
+            // Sprawdź czy oba klucze przekręcono w oknie 3000 ms
+            if (keyAlphaTime > 0 && keyBravoTime > 0 && Math.abs(keyAlphaTime - keyBravoTime) <= 3000) {
+                twoManSynced = true;
+                clearInterval(syncInterval);
+                document.getElementById("syncTimerFill").style.width = "100%";
+                document.getElementById("syncTimerFill").style.background = "#10b981";
+                document.getElementById("syncStatusText").innerText = "✓ SYNCHRONIZACJA DWÓCH KLUCZY POTWIERDZONA!";
+                document.getElementById("syncStatusText").style.color = "#34d399";
+                logEvent("TWO-MAN RULE: Synchroniczny obrót kluczy Oficera ALFA i Oficera BRAVO zatwierdzony.", "crit");
+                evaluateSiopReadiness();
                 return;
             }
 
-            document.getElementById('playerStatusState').innerText = `ETAP 2/2: DEFCON ${level} OGŁOSZENIE`;
-            currentAudioElement = new Audio(annUrl);
-            currentAudioElement.volume = vol;
-            currentAudioElement.play().catch(e => console.log("Audio err:", e));
-            currentAudioElement.onended = () => {
-                document.getElementById('playerStatusState').innerText = 'ZAKOŃCZONO SEKWENCJĘ';
-            };
-        };
-    }
+            // Uruchom pasek odliczający 3 sekundy na drugi klucz
+            clearInterval(syncInterval);
+            const startTime = now;
+            syncInterval = setInterval(() => {
+                const elapsed = performance.now() - startTime;
+                const remainPct = Math.max(0, 100 - (elapsed / 3000) * 100);
+                document.getElementById("syncTimerFill").style.width = `${remainPct}%`;
+                document.getElementById("syncStatusText").innerText = `Okno synchronizacji drugiego klucza: ${((3000 - elapsed) / 1000).toFixed(1)}s`;
 
-    // --- LOGIKA ZMIANY DEFCON ---
-    const defconDetails = {
-        5: { name: "FADE OUT", desc: "Minimalne zagrożenie. Standardowy czas pokoju i monitorowanie globalnej sytuacji." },
-        4: { name: "DOUBLE TAKE", desc: "Podwyższona gotowość wywiadowcza oraz wzmożone środki bezpieczeństwa wywiadowczego." },
-        3: { name: "ROUND HOUSE", desc: "Siły zbrojne w stanie podwyższonej gotowości. Gotowość sił strategicznych do działań w skróconym czasie." },
-        2: { name: "FAST PACE", desc: "Skokowy wzrost gotowości bojowej. Siły strategiczne w gotowości do odpalenia w ciągu kilku minut." },
-        1: { name: "COCKED PISTOL", desc: "Maksymalna gotowość bojowa. Wojna nuklearna jest wysoce prawdopodobna lub nieunikniona." }
-    };
-
-    function setDefconLevel(level, fromSlider = false) {
-        if (isManualMode && fromSlider) return;
-        currentDefcon = level;
-
-        // Aktualizacja UI Boxa
-        const box = document.getElementById('defconDisplayBox');
-        box.className = `defcon-display-box defcon-${level}`;
-        document.getElementById('defconNum').innerText = level;
-        document.getElementById('defconName').innerText = defconDetails[level].name;
-        document.getElementById('defconDesc').innerText = defconDetails[level].desc;
-
-        // Aktualizacja przycisków ręcznych
-        const btns = document.querySelectorAll('#defconManualButtons .btn-defcon');
-        btns.forEach((btn, idx) => {
-            btn.className = `btn-defcon ${idx + 1 === level ? 'active-' + level : ''}`;
-        });
-
-        addLog(`Zmieniono poziom gotowości na: DEFCON ${level} (${defconDetails[level].name})`, level === 1 ? 'alert' : '');
-
-        // Uruchomienie Twoich plików dźwiękowych
-        playDefconSequence(level);
-
-        // Automatyczny Skyking przy DEFCON 2 / 1
-        if (level <= 2) {
-            setTimeout(generateNewEAM, 1000);
+                if (elapsed >= 3000 && !twoManSynced) {
+                    clearInterval(syncInterval);
+                    keyAlphaTime = 0;
+                    keyBravoTime = 0;
+                    document.getElementById("btnKeyAlpha").innerText = "🔑 ALFA: OFF";
+                    document.getElementById("btnKeyAlpha").className = "btn";
+                    document.getElementById("btnKeyBravo").innerText = "🔑 BRAVO: OFF";
+                    document.getElementById("btnKeyBravo").className = "btn";
+                    document.getElementById("syncStatusText").innerText = "✗ Przekroczono okno 3.0s — powtórz obrót obu kluczy.";
+                    document.getElementById("syncStatusText").style.color = "#f87171";
+                }
+            }, 60);
         }
-    }
 
-    // --- PRZEŁĄCZANIE TRYBÓW ---
-    document.getElementById('toggleModeBtn').addEventListener('click', () => {
-        isManualMode = !isManualMode;
-        const statusSpan = document.getElementById('modeStatus');
-        const btn = document.getElementById('toggleModeBtn');
-        if (isManualMode) {
-            statusSpan.innerText = "RĘCZNY (PRZYCISKI)";
-            statusSpan.style.color = "var(--accent-red)";
-            btn.innerText = "PRZEŁĄCZ NA AUTOMAT";
-            addLog("Przełączono na sterowanie ręczne poziomem DEFCON.");
-        } else {
-            statusSpan.innerText = "AUTOMATYCZNY (SUWAKI)";
-            statusSpan.style.color = "var(--accent-green)";
-            btn.innerText = "PRZEŁĄCZ NA RĘCZNY";
-            updateFromSliders();
-            addLog("Przełączono na automatyczne sterowanie z suwaków ryzyka.");
-        }
-    });
-
-    // --- SUWAKI RYZYKA ---
-    function updateFromSliders() {
-        const v1 = parseInt(document.getElementById('slider1').value);
-        const v2 = parseInt(document.getElementById('slider2').value);
-        const v3 = parseInt(document.getElementById('slider3').value);
-        const v4 = parseInt(document.getElementById('slider4').value);
-        const v5 = parseInt(document.getElementById('slider5').value);
-
-        document.getElementById('val1').innerText = v1 + '%';
-        document.getElementById('val2').innerText = v2 + '%';
-        document.getElementById('val3').innerText = v3 + '%';
-        document.getElementById('val4').innerText = v4 + '%';
-        document.getElementById('val5').innerText = v5 + '%';
-
-        const avg = Math.round((v1 * 0.15 + v2 * 0.2 + v3 * 0.2 + v4 * 0.2 + v5 * 0.25));
-        document.getElementById('globalIndexVal').innerText = avg + '%';
-        document.getElementById('globalProgress').style.width = avg + '%';
-
-        if (!isManualMode) {
-            let targetDefcon = 5;
-            if (avg > 20) targetDefcon = 4;
-            if (avg > 40) targetDefcon = 3;
-            if (avg > 65) targetDefcon = 2;
-            if (avg > 85) targetDefcon = 1;
-
-            if (targetDefcon !== currentDefcon) {
-                setDefconLevel(targetDefcon, true);
+        function evaluateSiopReadiness() {
+            const btn = document.getElementById("btnSiopLaunch");
+            const stateBadge = document.getElementById("siopStateBadge");
+            if (currentDefcon === 1 && isPalUnlocked && twoManSynced) {
+                btn.classList.add("armed");
+                stateBadge.innerText = "STAN: UZBROJONY (GOTOWY DO STARTU SIOP)";
+                stateBadge.style.color = "#fef08a";
+            } else {
+                btn.classList.remove("armed");
+                stateBadge.innerText = "STAN: ZABEZPIECZONY";
+                stateBadge.style.color = "#f87171";
             }
         }
-    }
 
-    function resetSliders() {
-        document.getElementById('slider1').value = 20;
-        document.getElementById('slider2').value = 25;
-        document.getElementById('slider3').value = 30;
-        document.getElementById('slider4').value = 15;
-        document.getElementById('slider5').value = 10;
-        updateFromSliders();
-        addLog("Zresetowano czynniki ryzyka geopolitycznego.");
-    }
-
-    // --- SCENARIUSZE KRYZYSOWE ---
-    function triggerScenario(type) {
-        if (isManualMode) {
-            document.getElementById('toggleModeBtn').click(); // Przełącz na auto
-        }
-        if (type === 'adiz') {
-            document.getElementById('slider2').value = 75;
-            document.getElementById('slider4').value = 60;
-            addLog("SCENARIUSZ: Naruszenie przestrzeni powietrznej ADIZ przez bombowce strategiczne.", "alert");
-        } else if (type === 'cyber') {
-            document.getElementById('slider1').value = 95;
-            document.getElementById('slider3').value = 70;
-            addLog("SCENARIUSZ: Zmasowany cyberatak na infrastrukturę SCADA oraz sieć energetyczną.", "alert");
-        } else if (type === 'sbirs') {
-            document.getElementById('slider4').value = 90;
-            document.getElementById('slider5').value = 80;
-            addLog("SCENARIUSZ: Oślepienie satelity wczesnego ostrzegania SBIRS laserem ziemskim.", "alert");
-        } else if (type === 'icbm') {
-            document.getElementById('slider5').value = 100;
-            document.getElementById('slider4').value = 95;
-            addLog("SCENARIUSZ: Wykryto start rakiet balistycznych ICBM z silosów baz lądowych!", "alert");
-        } else if (type === 'peace') {
-            document.getElementById('slider1').value = 5;
-            document.getElementById('slider2').value = 5;
-            document.getElementById('slider3').value = 10;
-            document.getElementById('slider4').value = 5;
-            document.getElementById('slider5').value = 5;
-            addLog("SCENARIUSZ: Podpisano traktat o redukcji zbrojeń na Szczycie Pokojowym.");
-        } else if (type === 'random') {
-            document.getElementById('slider1').value = Math.floor(Math.random() * 80) + 10;
-            document.getElementById('slider2').value = Math.floor(Math.random() * 80) + 10;
-            document.getElementById('slider3').value = Math.floor(Math.random() * 80) + 10;
-            document.getElementById('slider4').value = Math.floor(Math.random() * 80) + 10;
-            document.getElementById('slider5').value = Math.floor(Math.random() * 80) + 10;
-            addLog("SCENARIUSZ: Losowy incydent kryzysowy w rejonie zapalnym.");
-        }
-        updateFromSliders();
-    }
-
-    // --- TERMINAL MOLINK & EAM ---
-    const molinkMessages = [
-        "MOSKWA DO WASZYNGTON: Żądamy natychmiastowego wyjaśnienia manewrów flotylli w Zatoce.",
-        "WASZYNGTON DO MOSKWY: Manewry mają charakter rutynowy i obronny. Zachowajcie spokój.",
-        "PEKIN DO WASZYNGTON: Naruszenie wód terytorialnych spotka się z twardą reakcją.",
-        "WASZYNGTON DO PEKINU: Apelujemy o uruchomienie dodatkowych kanałów deeskalacji.",
-        "NASŁUCH HF: Wykryto wzmożoną transmisję szyfrogramów liczbowych w paśmie 14320 kHz."
-    ];
-
-    function sendMolinkQuery() {
-        const terminal = document.getElementById('molinkTerminal');
-        const msg = molinkMessages[Math.floor(Math.random() * molinkMessages.length)];
-        const timeStr = new Date().toUTCString().split(' ')[4];
-        terminal.innerHTML += `<br>[${timeStr}] ${msg}`;
-        terminal.scrollTop = terminal.scrollHeight;
-        addLog("Odebrano nową depeszę przez kanał dyplomatyczny MOLINK.");
-    }
-
-    let lastEAMText = "";
-    function generateNewEAM() {
-        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        let code = "";
-        for(let i=0; i<16; i++) {
-            code += alphabet[Math.floor(Math.random()*alphabet.length)];
-        }
-        lastEAMText = `SKYKING SKYKING DO NOT ANSWER ALPHA BRAVO ${code} AUTHENTICATED DELTA ZERO`;
-        document.getElementById('eamDisplay').innerText = lastEAMText;
-        addLog("Wygenerowano nowy szyfrogram EAM / SKYKING.");
-    }
-
-    function speakEAM() {
-        if (!lastEAMText) generateNewEAM();
-        if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(lastEAMText);
-            utterance.lang = 'en-US';
-            utterance.rate = 0.9;
-            window.speechSynthesis.speak(utterance);
-            addLog("Nadano komunikat EAM za pomocą syntezatora mowy (HF Radio).");
-        } else {
-            alert("Synteza mowy niedostępna w tej przeglądarce.");
-        }
-    }
-
-    // --- KONSOLA SIOP I PAL ---
-    function revealBiscuit() {
-        const alphabet = "0123456789ABCDEF";
-        currentBiscuitCode = "";
-        for(let i=0; i<8; i++) {
-            currentBiscuitCode += alphabet[Math.floor(Math.random()*alphabet.length)];
-        }
-        document.getElementById('biscuitCode').innerText = currentBiscuitCode;
-        addLog("Zerwaną plombę z karty 'The Biscuit'. Wygenerowano Złoty Kod SAS.", "alert");
-    }
-
-    function unlockPAL() {
-        if(!currentBiscuitCode) {
-            alert("Najpierw musisz zerwać plombę z karty 'The Biscuit'!");
-            return;
-        }
-        palUnlocked = true;
-        document.getElementById('palStatus').innerText = "ODBLOKOWANE";
-        document.getElementById('palStatus').style.color = "var(--accent-green)";
-        addLog("Blokada Permissive Action Link (PAL) została pomyślnie zwolniona.", "alert");
-        checkLaunchReady();
-    }
-
-    function turnKey(type) {
-        if(type === 'alpha') {
-            keyAlphaTurned = !keyAlphaTurned;
-            const btn = document.getElementById('keyAlpha');
-            btn.innerText = keyAlphaTurned ? "KLUCZ ALFA: ON" : "KLUCZ ALFA: OFF";
-            btn.style.background = keyAlphaTurned ? "var(--accent-green)" : "#1e3a8a";
-            btn.style.color = keyAlphaTurned ? "#000" : "#fff";
-        } else {
-            keyBravoTurned = !keyBravoTurned;
-            const btn = document.getElementById('keyBravo');
-            btn.innerText = keyBravoTurned ? "KLUCZ BRAVO: ON" : "KLUCZ BRAVO: OFF";
-            btn.style.background = keyBravoTurned ? "var(--accent-green)" : "#1e3a8a";
-            btn.style.color = keyBravoTurned ? "#000" : "#fff";
-        }
-        checkLaunchReady();
-    }
-
-    function checkLaunchReady() {
-        const btn = document.getElementById('launchBtn');
-        if (palUnlocked && keyAlphaTurned && keyBravoTurned && currentDefcon === 1) {
-            btn.classList.add('ready');
-            addLog("Wszystkie warunki zasady Two-Man Rule i PAL spełnione. System SIOP gotowy do startu.", "alert");
-        } else {
-            btn.classList.remove('ready');
-        }
-    }
-
-    function executeSIOPLaunch() {
-        const btn = document.getElementById('launchBtn');
-        if (!btn.classList.contains('ready')) {
-            alert("BAML: Warunki startu nie zostały spełnione! Wymagany DEFCON 1, odblokowany PAL oraz oba klucze startowe.");
-            return;
+        function executeSiopLaunch() {
+            if (!(currentDefcon === 1 && isPalUnlocked && twoManSynced)) {
+                logEvent("ODMOWA AUTORYZACJI SIOP: Wymagany poziom DEFCON 1, odblokowana blokada PAL oraz zsynchronizowane 2 klucze!", "warn");
+                return;
+            }
+            logEvent("☢️ SIOP LAUNCH EXECUTED: Wysłano rozkaz startu pocisków Minuteman III i Trident II D5 do wszystkich jednostek!", "crit");
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => spawnTestBallisticArc(), i * 350);
+            }
         }
 
-        if(confirm("OSTRZEŻENIE STRATEGICZNE: Czy na pewno chcesz autoryzować masowe uderzenie odwetowe SIOP? Ta decyzja jest nieodwracalna.")) {
-            addLog("!!! ROZKAZ STARTU GŁOWIC STRATEGICZNYCH ICBM/SLBM WYSŁANY DO SILOSÓW !!!", "alert");
-            document.body.style.backgroundColor = "#450a0a";
-            setTimeout(() => {
-                alert("ROZPROSZONA SYMULACJA STRATEGICZNA: Wymiana uderzeń nuklearnych w toku. Szczęśliwej podróży w nieznane.");
-                document.body.style.backgroundColor = "var(--bg-color)";
-            }, 1000);
+        /* =========================================================================
+           6. WIZUALIZACJA TAKTYCZNA CANVAS (MAPA GLOBALNA NORAD + RADAR POLARNY BMEWS)
+           ========================================================================= */
+        const canvas = document.getElementById("tacticalCanvas");
+        const ctx = canvas.getContext("2d");
+        let canvasMode = "map"; // 'map' | 'radar'
+        let radarAngle = 0;
+
+        const STRATEGIC_BASES = [
+            { name: "NORAD Cheyenne Mtn", x: 0.21, y: 0.36, type: "allied" },
+            { name: "Thule BMEWS", x: 0.34, y: 0.14, type: "allied" },
+            { name: "RAF Fylingdales", x: 0.48, y: 0.27, type: "allied" },
+            { name: "Ramstein AB", x: 0.52, y: 0.31, type: "allied" },
+            { name: "Clear AFS Alaska", x: 0.11, y: 0.18, type: "allied" },
+            { name: "Guam Andersen", x: 0.85, y: 0.54, type: "allied" },
+            { name: "Kozielsk ICBM", x: 0.59, y: 0.28, type: "hostile" },
+            { name: "Dombarowskij", x: 0.66, y: 0.33, type: "hostile" },
+            { name: "Użur Silos", x: 0.74, y: 0.29, type: "hostile" },
+            { name: "Wiliuczyńsk SSBN", x: 0.88, y: 0.26, type: "hostile" }
+        ];
+
+        // Uproszczone obrysy kontynentów dla wektorowej mapy NORAD
+        const CONTINENTS_POLYGONS = [
+            // Ameryka Północna
+            [[0.08,0.18],[0.28,0.14],[0.33,0.28],[0.25,0.46],[0.18,0.48],[0.12,0.34]],
+            // Ameryka Południowa
+            [[0.25,0.52],[0.35,0.58],[0.32,0.84],[0.27,0.86],[0.24,0.65]],
+            // Europa + Azja
+            [[0.46,0.20],[0.65,0.15],[0.89,0.20],[0.86,0.46],[0.73,0.52],[0.60,0.44],[0.47,0.36]],
+            // Afryka
+            [[0.46,0.42],[0.60,0.45],[0.58,0.76],[0.50,0.78],[0.44,0.55]],
+            // Australia
+            [[0.77,0.68],[0.88,0.68],[0.87,0.82],[0.76,0.80]]
+        ];
+
+        const ballisticArcs = [];
+
+        function setCanvasMode(mode) {
+            canvasMode = mode;
+            document.getElementById("btnViewMap").className = mode === "map" ? "btn btn-cyan" : "btn";
+            document.getElementById("btnViewRadar").className = mode === "radar" ? "btn btn-cyan" : "btn";
+            document.getElementById("hudLeft").innerText = mode === "map"
+                ? "PROJEKCJA: GLOBALNA SIATKA TAKTYCZNA NORAD • SATELITY SBIRS: 4 ONLINE"
+                : "PROJEKCJA: POLARNY RADAR ARKTYCZNY BMEWS (SEKTOR PÓŁNOCNY)";
         }
-    }
 
-    // --- MAPA / RADAR ---
-    let radarViewMode = true;
-    function toggleRadarView() {
-        radarViewMode = !radarViewMode;
-        const container = document.getElementById('mapContainer');
-        if (radarViewMode) {
-            container.innerHTML = `
-                <div class="radar-sweep">
-                    <div class="map-hotspot" style="top: 70px; left: 110px;"></div>
-                    <div class="map-hotspot" style="top: 140px; left: 80px; background: #3b82f6;"></div>
-                    <div class="map-hotspot" style="top: 90px; left: 150px; background: #f59e0b;"></div>
-                </div>`;
-            addLog("Przełączono widok na Radar Polarny BMEWS.");
-        } else {
-            container.innerHTML = `
-                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #38bdf8; font-size: 0.85rem; text-align: center; padding: 10px;">
-                    [ WIDOK GLOBARNY NORAD / SECTOR NORTH ]<br>Aktywne bazy: THULE, FYLINGDALES, COBRA DANE
-                </div>`;
-            addLog("Przełączono widok na Mapę Sektora Globalnego NORAD.");
+        function spawnTestBallisticArc() {
+            const hostileBases = STRATEGIC_BASES.filter(b => b.type === "hostile");
+            const alliedBases = STRATEGIC_BASES.filter(b => b.type === "allied");
+            const src = hostileBases[Math.floor(Math.random() * hostileBases.length)];
+            const dst = alliedBases[Math.floor(Math.random() * alliedBases.length)];
+
+            ballisticArcs.push({
+                x1: src.x, y1: src.y,
+                x2: dst.x, y2: dst.y,
+                progress: 0,
+                speed: 0.004 + Math.random() * 0.003,
+                label: `ICBM-${Math.floor(100 + Math.random() * 900)}`
+            });
+            document.getElementById("hudRight").innerText = `ŚLEDZONE OBIEKTY BALISTYCZNE: ${ballisticArcs.length}`;
         }
-    }
 
-    // --- DZIENNIK LOGÓW ---
-    function addLog(text, type = "") {
-        const box = document.getElementById('logBox');
-        const timeStr = new Date().toUTCString().split(' ')[4];
-        const entry = document.createElement('div');
-        entry.className = `log-entry ${type === 'alert' ? 'log-alert' : ''}`;
-        entry.innerHTML = `<span class="log-time">[${timeStr} ZULU]</span> ${text}`;
-        box.insertBefore(entry, box.firstChild);
-    }
+        function drawTacticalCanvas() {
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
 
-    function clearLogs() {
-        document.getElementById('logBox').innerHTML = '';
-        addLog("Wyczyszczono dziennik operacyjny.");
-    }
+            if (canvasMode === "map") {
+                // Siatka geograficzna
+                ctx.strokeStyle = "rgba(30, 58, 95, 0.35)";
+                ctx.lineWidth = 1;
+                for (let x = 0; x < w; x += 50) {
+                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+                }
+                for (let y = 0; y < h; y += 45) {
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+                }
 
-    // Inicjalizacja przy starcie
-    window.onload = () => {
-        initIndexedDB();
-        updateFromSliders();
-        generateNewEAM();
-    };
-</script>
+                // Wektorowe kontynenty
+                ctx.fillStyle = "rgba(14, 116, 144, 0.14)";
+                ctx.strokeStyle = "rgba(6, 182, 212, 0.5)";
+                ctx.lineWidth = 1.2;
+                CONTINENTS_POLYGONS.forEach(poly => {
+                    ctx.beginPath();
+                    poly.forEach((pt, idx) => {
+                        if (idx === 0) ctx.moveTo(pt[0] * w, pt[1] * h);
+                        else ctx.lineTo(pt[0] * w, pt[1] * h);
+                    });
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                });
+
+                // Orbita sinusoidalna satelitów SBIRS
+                ctx.strokeStyle = "rgba(234, 179, 8, 0.3)";
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                for (let x = 0; x < w; x += 6) {
+                    const y = h * 0.5 + Math.sin((x / w) * Math.PI * 2 + radarAngle) * (h * 0.28);
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Bazy NORAD i przeciwnika
+                STRATEGIC_BASES.forEach(b => {
+                    const bx = b.x * w;
+                    const by = b.y * h;
+                    ctx.fillStyle = b.type === "allied" ? "#38bdf8" : "#ef4444";
+                    ctx.beginPath();
+                    ctx.arc(bx, by, 4, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.font = "10px monospace";
+                    ctx.fillStyle = "rgba(226, 232, 240, 0.8)";
+                    ctx.fillText(b.name, bx + 7, by + 3);
+                });
+
+                // Trajektorie balistyczne ICBM
+                ballisticArcs.forEach((arc) => {
+                    const sx = arc.x1 * w, sy = arc.y1 * h;
+                    const ex = arc.x2 * w, ey = arc.y2 * h;
+                    const cx = (sx + ex) / 2;
+                    const cy = Math.min(sy, ey) - 95;
+
+                    // Ślad trajektorii
+                    ctx.strokeStyle = "rgba(239, 68, 68, 0.85)";
+                    ctx.lineWidth = 1.8;
+                    ctx.beginPath();
+                    for (let t = 0; t <= arc.progress; t += 0.02) {
+                        const px = (1 - t) * (1 - t) * sx + 2 * (1 - t) * t * cx + t * t * ex;
+                        const py = (1 - t) * (1 - t) * sy + 2 * (1 - t) * t * cy + t * t * ey;
+                        if (t === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.stroke();
+
+                    // Głowica MIRV
+                    const t = arc.progress;
+                    const hx = (1 - t) * (1 - t) * sx + 2 * (1 - t) * t * cx + t * t * ex;
+                    const hy = (1 - t) * (1 - t) * sy + 2 * (1 - t) * t * cy + t * t * ey;
+
+                    ctx.fillStyle = "#fef08a";
+                    ctx.beginPath();
+                    ctx.arc(hx, hy, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = "#fca5a5";
+                    ctx.font = "10px monospace";
+                    ctx.fillText(arc.label, hx + 6, hy - 5);
+                });
+
+            } else {
+                // TRYB RADARU POLARNEGO BMEWS
+                const cx = w / 2;
+                const cy = h / 2;
+                const maxR = Math.min(w, h) * 0.44;
+
+                ctx.strokeStyle = "rgba(16, 185, 129, 0.4)";
+                ctx.lineWidth = 1;
+                [0.25, 0.5, 0.75, 1].forEach(r => {
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, maxR * r, 0, Math.PI * 2);
+                    ctx.stroke();
+                });
+
+                ctx.beginPath();
+                ctx.moveTo(cx - maxR, cy); ctx.lineTo(cx + maxR, cy);
+                ctx.moveTo(cx, cy - maxR); ctx.lineTo(cx, cy + maxR);
+                ctx.stroke();
+
+                // Wiązka skanująca BMEWS
+                const grad = ctx.createRadialGradient(cx, cy, 5, cx, cy, maxR);
+                grad.addColorStop(0, "rgba(16, 185, 129, 0.45)");
+                grad.addColorStop(1, "rgba(16, 185, 129, 0.0)");
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, maxR, radarAngle, radarAngle + 0.45);
+                ctx.closePath();
+                ctx.fill();
+
+                // Echa radarowe
+                ballisticArcs.forEach((arc, i) => {
+                    const ang = (i * 1.3) + arc.progress * 2;
+                    const dist = (1 - arc.progress * 0.7) * maxR;
+                    const bx = cx + Math.cos(ang) * dist;
+                    const by = cy + Math.sin(ang) * dist;
+
+                    ctx.fillStyle = "#ef4444";
+                    ctx.beginPath();
+                    ctx.arc(bx, by, 4.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = "#fca5a5";
+                    ctx.font = "10px monospace";
+                    ctx.fillText(arc.label, bx + 7, by + 3);
+                });
+            }
+
+            // Aktualizacja postępu rakiet
+            for (let i = ballisticArcs.length - 1; i >= 0; i--) {
+                ballisticArcs[i].progress += ballisticArcs[i].speed;
+                if (ballisticArcs[i].progress >= 1) {
+                    ballisticArcs.splice(i, 1);
+                    document.getElementById("hudRight").innerText = `ŚLEDZONE OBIEKTY BALISTYCZNE: ${ballisticArcs.length}`;
+                }
+            }
+
+            radarAngle = (radarAngle + 0.025) % (Math.PI * 2);
+            requestAnimationFrame(drawTacticalCanvas);
+        }
+
+        /* =========================================================================
+           7. DZIENNIK ZDARZEŃ ZULU I ZEGAR SYSTEMOWY
+           ========================================================================= */
+        function getZuluTimestamp() {
+            const now = new Date();
+            return now.toISOString().slice(11, 19) + "Z";
+        }
+
+        function logEvent(message, level = "info") {
+            const container = document.getElementById("eventLogContainer");
+            const div = document.createElement("div");
+            div.className = `log-item ${level}`;
+            div.innerHTML = `<span class="log-ts">[${getZuluTimestamp()}]</span> ${message}`;
+            container.prepend(div);
+        }
+
+        function addOfficerNote() {
+            const input = document.getElementById("officerNoteInput");
+            const text = input.value.trim();
+            if (!text) return;
+            logEvent(`NOTATKA OFICERA DYŻURNEGO: "${text}"`, "ok");
+            input.value = "";
+        }
+
+        function clearEventLog() {
+            document.getElementById("eventLogContainer").innerHTML = "";
+            logEvent("Dziennik operacyjny został wyczyszczony przez oficera dyżurnego.", "info");
+        }
+
+        setInterval(() => {
+            document.getElementById("clockZulu").innerText = getZuluTimestamp();
+        }, 1000);
+
+        /* =========================================================================
+           8. INICJALIZACJA STARTOWA
+           ========================================================================= */
+        window.addEventListener("DOMContentLoaded", () => {
+            initIndexedDB();
+            renderAudioBankList();
+            applyDefconLevel(5, false);
+            renderMolinkDilemma(0);
+            generateEAM(false);
+            drawTacticalCanvas();
+            logEvent("System dowodzenia strategicznego USSTRATCOM / NORAD zainicjalizowany w gotowości DEFCON 5.", "ok");
+        });
+    </script>
 </body>
 </html>
