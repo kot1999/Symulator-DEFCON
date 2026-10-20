@@ -394,19 +394,35 @@
 
         /* Suwaki czynników ryzyka */
         .slider-item {
-            margin-bottom: 11px;
+            margin-bottom: 10px;
+        }
+
+        .slider-item.icbm-critical-box {
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            background: rgba(127, 29, 29, 0.14);
+            padding: 8px 9px;
+            border-radius: 5px;
+            transition: all 0.25s ease;
+        }
+
+        .slider-item.icbm-critical-box.active-alert {
+            border-color: #ef4444;
+            background: rgba(185, 28, 28, 0.28);
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.45);
         }
 
         .slider-top {
             display: flex;
             justify-content: space-between;
-            font-size: 0.74rem;
+            font-size: 0.73rem;
             margin-bottom: 4px;
+            gap: 6px;
         }
 
         .slider-top .val {
             font-weight: 700;
             color: var(--cyan);
+            white-space: nowrap;
         }
 
         input[type="range"] {
@@ -428,6 +444,11 @@
             background: var(--cyan);
             cursor: pointer;
             box-shadow: 0 0 8px var(--cyan);
+        }
+
+        #sl6::-webkit-slider-thumb {
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
         }
 
         .tension-meter-box {
@@ -593,6 +614,20 @@
             color: var(--text-muted);
         }
 
+        .random-event-banner {
+            margin-top: 10px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-bright);
+            border-left: 3px solid var(--cyan);
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 0.71rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
         /* Sekcja Procedur Nuklearnych (MOLINK, EAM, SIOP/PAL) */
         .nuclear-grid {
             display: grid;
@@ -622,6 +657,16 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 6px;
+        }
+
+        .molink-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.63rem;
+            color: #86efac;
+            margin-bottom: 5px;
+            opacity: 0.9;
         }
 
         .molink-screen {
@@ -631,7 +676,7 @@
             padding: 9px;
             border-radius: 4px;
             font-size: 0.72rem;
-            min-height: 88px;
+            min-height: 92px;
             line-height: 1.4;
             margin-bottom: 8px;
         }
@@ -666,7 +711,7 @@
             padding: 9px;
             border-radius: 4px;
             font-size: 0.72rem;
-            min-height: 88px;
+            min-height: 92px;
             line-height: 1.4;
             margin-bottom: 8px;
             letter-spacing: 0.5px;
@@ -1100,6 +1145,18 @@
                     <input type="range" id="sl5" min="0" max="100" value="5" oninput="onSlidersChanged()">
                 </div>
 
+                <!-- NOWY CZYNNIK #6: Wykrycie ICBM w powietrzu -->
+                <div class="slider-item icbm-critical-box" id="icbmRiskBox">
+                    <div class="slider-top">
+                        <span style="color:#fca5a5; font-weight:700;">6. Wykrycie ICBM w powietrzu (BMEWS)</span>
+                        <span class="val" id="slVal6" style="color:#f87171;">0% (BRAK)</span>
+                    </div>
+                    <input type="range" id="sl6" min="0" max="100" value="0" oninput="onSlidersChanged(true)">
+                    <div style="font-size:0.61rem; color:#fda4af; margin-top:4px; line-height:1.25;">
+                        ⚡ Sprzężone z radarem BMEWS — wykrycie pocisku balistycznego w locie natychmiast eskaluje poziom DEFCON.
+                    </div>
+                </div>
+
                 <div class="tension-meter-box">
                     <div style="display:flex; justify-content:space-between; font-size:0.76rem;">
                         <span>INDEKS NAPIĘCIA GLOBALNEGO:</span>
@@ -1159,7 +1216,7 @@
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">Generator Scenariuszy Kryzysowych</span>
-                    <span style="font-size:0.68rem; color:var(--text-muted);">Natychmiastowa symulacja incydentu sztabowego</span>
+                    <span id="eventsDbCounter" style="font-size:0.68rem; color:var(--cyan);">Baza incydentów: ładowanie...</span>
                 </div>
 
                 <div class="scenario-grid">
@@ -1183,10 +1240,18 @@
                         <span class="sc-title">🕊️ Szczyt pokojowy / Deeskalacja</span>
                         <span class="sc-sub">Wycofanie jednostek do baz stałej dyslokacji i inspekcja START</span>
                     </button>
-                    <button class="scenario-btn" onclick="runScenario('random')">
-                        <span class="sc-title">🎲 Losowy incydent globalny</span>
-                        <span class="sc-sub">Wygeneruj nieprzewidziany splot wydarzeń geopolitycznych</span>
+                    <button class="scenario-btn" onclick="runScenario('random')" style="border-color:rgba(6, 182, 212, 0.45);">
+                        <span class="sc-title" style="color:#67e8f9;">🎲 Losowy incydent z bazy</span>
+                        <span class="sc-sub">Wylosuj zdarzenie z zewnętrznego rejestru operacyjnego</span>
                     </button>
+                </div>
+
+                <div class="random-event-banner" id="randomIncidentBanner">
+                    <div>
+                        <span style="color:var(--text-muted); font-size:0.63rem; text-transform:uppercase;">Ostatni wylosowany incydent operacyjny:</span>
+                        <div id="randomIncidentTitle" style="color:#f8fafc; font-weight:700; margin-top:2px;">Brak — kliknij „Losowy incydent z bazy”, aby wygenerować sytuację kryzysową.</div>
+                    </div>
+                    <button class="btn btn-cyan" onclick="runScenario('random')" style="padding:4px 9px; font-size:0.66rem; white-space:nowrap;">🎲 LOSUJ KOLEJNY</button>
                 </div>
             </div>
 
@@ -1201,8 +1266,15 @@
                     <!-- 1. Terminal Gorącej Linii MOLINK z dylematami decyzyjnymi -->
                     <div class="sub-box">
                         <div class="sub-box-title">
-                            <span>☎️ Gorąca Linia (MOLINK: Waszyngton ⇄ Moskwa/Pekin)</span>
-                            <button class="btn btn-amber" onclick="triggerNewMolinkDilemma()" style="padding:2px 7px; font-size:0.64rem;">NOWA DEPESZA</button>
+                            <span>☎️ Gorąca Linia (MOLINK)</span>
+                            <div style="display:flex; gap:4px;">
+                                <button class="btn" onclick="triggerRandomMolinkDilemma()" style="padding:2px 7px; font-size:0.62rem;">🎲 LOSOWA</button>
+                                <button class="btn btn-amber" onclick="triggerNewMolinkDilemma()" style="padding:2px 7px; font-size:0.62rem;">NASTĘPNA ➔</button>
+                            </div>
+                        </div>
+                        <div class="molink-meta">
+                            <span id="molinkCategoryTag">KATEGORIA: WCZESNE OSTRZEGANIE</span>
+                            <span id="molinkCounterTag">DEPESZA 1 / 1</span>
                         </div>
                         <div class="molink-screen" id="molinkText"></div>
                         <div class="dilemma-choices" id="molinkChoices"></div>
@@ -1322,6 +1394,9 @@
 
     </main>
 
+    <!-- ZEWNĘTRZNY PLIK Z BAZĄ DEPESZ MOLINK I ZDARZEŃ LOSOWYCH -->
+    <script src="./events_data.js"></script>
+
     <script>
         /* =========================================================================
            1. DANE KONFIGURACYJNE POZIOMÓW DEFCON I 5 RODZAJÓW SIŁ ZBROJNYCH USA
@@ -1396,6 +1471,7 @@
         let isAutoMode = true;
         let isMuted = false;
         let masterVolume = 0.85;
+        let lastRandomIncidentIndex = -1;
 
         /* =========================================================================
            3. SYSTEM AUDIO MP3 — WCZYTYWANIE BEZPOŚREDNIO Z GŁÓWNEGO FOLDERU SERWERA
@@ -1422,7 +1498,6 @@
 
         function verifyServerAudioFiles() {
             for (let lvl = 1; lvl <= 5; lvl++) {
-                // Weryfikacja pliku alarmu (defcon X alert.mp3)
                 const probeAlert = new Audio();
                 probeAlert.preload = "metadata";
                 probeAlert.onloadedmetadata = () => {
@@ -1435,7 +1510,6 @@
                 };
                 probeAlert.src = audioBank[lvl].alert;
 
-                // Weryfikacja pliku ogłoszenia (defcon 1..4 announcment.mp3)
                 if (lvl < 5 && audioBank[lvl].announcment) {
                     const probeAnn = new Audio();
                     probeAnn.preload = "metadata";
@@ -1632,7 +1706,7 @@
         }
 
         /* =========================================================================
-           4. STEROWANIE POZIOMEM DEFCON I SUWAKAMI RYZYKA
+           4. STEROWANIE POZIOMEM DEFCON I SUWAKAMI RYZYKA (Z WYKRYCIEM ICBM W LOCIE)
            ========================================================================= */
         function applyDefconLevel(level, playSound = true) {
             const changed = (level !== currentDefcon);
@@ -1705,12 +1779,41 @@
             lbl.style.color = isAutoMode ? "#34d399" : "#f59e0b";
         }
 
-        function onSlidersChanged() {
+        // Automatyczna synchronizacja suwaka #6 na podstawie pocisków śledzonych w powietrzu przez BMEWS
+        function syncIcbmAirborneRisk() {
+            const sl6 = document.getElementById("sl6");
+            if (!sl6) return;
+
+            const totalInFlight = ballisticArcs.length;
+            const hostileInFlight = ballisticArcs.filter(a => a.side === "hostile").length;
+
+            if (totalInFlight === 0) {
+                return;
+            }
+
+            let targetVal = 0;
+            if (hostileInFlight >= 2) {
+                targetVal = 100;
+            } else if (hostileInFlight === 1) {
+                targetVal = 90;
+            } else {
+                // Pociski własne USA w locie
+                targetVal = Math.min(100, 60 + totalInFlight * 20);
+            }
+
+            if (parseInt(sl6.value, 10) < targetVal) {
+                sl6.value = targetVal;
+            }
+            onSlidersChanged();
+        }
+
+        function onSlidersChanged(manualSlider6 = false) {
             const v1 = parseInt(document.getElementById("sl1").value, 10);
             const v2 = parseInt(document.getElementById("sl2").value, 10);
             const v3 = parseInt(document.getElementById("sl3").value, 10);
             const v4 = parseInt(document.getElementById("sl4").value, 10);
             const v5 = parseInt(document.getElementById("sl5").value, 10);
+            const v6 = parseInt(document.getElementById("sl6").value, 10);
 
             document.getElementById("slVal1").innerText = `${v1}%`;
             document.getElementById("slVal2").innerText = `${v2}%`;
@@ -1718,7 +1821,37 @@
             document.getElementById("slVal4").innerText = `${v4}%`;
             document.getElementById("slVal5").innerText = `${v5}%`;
 
-            const tension = Math.round(v1 * 0.15 + v2 * 0.18 + v3 * 0.17 + v4 * 0.22 + v5 * 0.28);
+            const icbmBox = document.getElementById("icbmRiskBox");
+            const slVal6El = document.getElementById("slVal6");
+            const activeMissiles = ballisticArcs.length;
+
+            if (v6 === 0 && activeMissiles === 0) {
+                slVal6El.innerText = "0% (BRAK)";
+                slVal6El.style.color = "#f87171";
+                icbmBox.classList.remove("active-alert");
+            } else {
+                const missileNote = activeMissiles > 0 ? `${activeMissiles} W LOCIE` : "ALARM BMEWS";
+                slVal6El.innerText = `${v6}% (${missileNote})`;
+                slVal6El.style.color = "#fef08a";
+                icbmBox.classList.add("active-alert");
+            }
+
+            // Obliczanie Indeksu Napięcia Globalnego z silnym wpływem wykrycia ICBM w powietrzu (v6)
+            let rawTension = (v1 * 0.12) + (v2 * 0.14) + (v3 * 0.14) + (v4 * 0.18) + (v5 * 0.22) + (v6 * 0.65);
+
+            // Krytyczne progi wymuszające podniesienie gotowości DEFCON przy wykryciu ICBM w locie:
+            if (v6 >= 75 || ballisticArcs.some(a => a.side === "hostile")) {
+                // Potwierdzony atak ICBM lub wysoki wskaźnik głowic w locie wymusza DEFCON 1 (>=86%)
+                rawTension = Math.max(rawTension, 92);
+            } else if (v6 >= 40 || activeMissiles > 0) {
+                // Pojedynczy start lub niepotwierdzony ślad balistyczny w powietrzu wymusza min. DEFCON 2 (>=68%)
+                rawTension = Math.max(rawTension, 74);
+            } else if (v6 >= 15) {
+                // Anomalia trajektorii suborbitalnej wymusza min. DEFCON 3 (>=45%)
+                rawTension = Math.max(rawTension, 50);
+            }
+
+            const tension = Math.min(100, Math.round(rawTension));
             document.getElementById("tensionBarFill").style.width = `${tension}%`;
 
             let calcLevel = 5;
@@ -1735,8 +1868,10 @@
         }
 
         function setSlidersValues(arr) {
-            for (let i = 0; i < 5; i++) {
-                document.getElementById(`sl${i + 1}`).value = Math.max(0, Math.min(100, arr[i]));
+            for (let i = 0; i < 6; i++) {
+                const val = arr[i] !== undefined ? arr[i] : 0;
+                const el = document.getElementById(`sl${i + 1}`);
+                if (el) el.value = Math.max(0, Math.min(100, val));
             }
             if (!isAutoMode) {
                 isAutoMode = true;
@@ -1746,79 +1881,120 @@
         }
 
         function resetSliders() {
-            setSlidersValues([10, 10, 15, 5, 5]);
-            logEvent("Zresetowano wskaźniki ryzyka geopolitycznego do poziomu pokojowego.", "ok");
+            clearAllMissiles();
+            setSlidersValues([10, 10, 15, 5, 5, 0]);
+            logEvent("Zresetowano wskaźniki ryzyka geopolitycznego oraz wyczyszczono ślady radarowe ICBM.", "ok");
         }
 
         function runScenario(code) {
             if (code === "adiz") {
-                logEvent("INCYDENT ADIZ: Formacja bombowców strategicznych naruszyła sektor identyfikacji powietrznej Alaski.", "warn");
-                setSlidersValues([25, 65, 55, 45, 35]);
+                logEvent("INCYDENT ADIZ: Formacja bombowców strategicznych Tu-160 naruszyła sektor identyfikacji powietrznej Alaski.", "warn");
+                setSlidersValues([25, 65, 55, 45, 35, 0]);
             } else if (code === "cyber") {
                 logEvent("ATAK CYBERNETYCZNY: Wykryto skoordynowane uderzenie na przemysłowe systemy SCADA i węzły łączności.", "warn");
-                setSlidersValues([95, 50, 70, 55, 40]);
+                setSlidersValues([95, 50, 70, 55, 40, 0]);
             } else if (code === "sbirs") {
                 logEvent("ALARM KOSMICZNY: Satelita wczesnego ostrzegania SBIRS-GEO oślepiony wiązką laserową nad Euroazją!", "crit");
-                setSlidersValues([70, 65, 80, 95, 75]);
+                setSlidersValues([70, 65, 80, 95, 75, 25]);
             } else if (code === "icbm") {
-                logEvent("ALARM BALISTYCZNY BMEWS: Wykryto start wrogich pocisków ICBM z głębi Euroazji w kierunku USA!", "crit");
-                setSlidersValues([90, 90, 95, 100, 100]);
+                logEvent("ALARM BALISTYCZNY BMEWS: Wykryto zmasowany start wrogich pocisków ICBM z głębi Euroazji w kierunku USA!", "crit");
+                setSlidersValues([90, 90, 95, 100, 100, 100]);
                 for (let i = 0; i < 4; i++) {
-                    setTimeout(() => spawnHostileStrikeArc(), i * 300);
+                    setTimeout(() => spawnHostileStrikeArc(), i * 280);
                 }
             } else if (code === "peace") {
                 logEvent("POROZUMIENIE DYPLOMATYCZNE: Podpisano protokół deeskalacji i wznowiono inspekcje nuklearne.", "ok");
-                setSlidersValues([5, 8, 10, 5, 5]);
+                clearAllMissiles();
+                setSlidersValues([5, 8, 10, 5, 5, 0]);
             } else if (code === "random") {
-                const rnd = () => Math.floor(Math.random() * 95) + 5;
-                logEvent("LOSOWY INCYDENT: Nagła zmiana parametrów wywiadowczych w wielu teatrach działań.", "warn");
-                setSlidersValues([rnd(), rnd(), rnd(), rnd(), rnd()]);
+                triggerRandomIncidentFromFile();
+            }
+        }
+
+        // Obsługa rozbudowanej puli zdarzeń losowych z zewnętrznego pliku events_data.js
+        function triggerRandomIncidentFromFile() {
+            const pool = (window.RANDOM_INCIDENTS && window.RANDOM_INCIDENTS.length > 0)
+                ? window.RANDOM_INCIDENTS
+                : [
+                    {
+                        title: "Nieautoryzowany start rakiety sondażowej nad Morzem Barentsa",
+                        category: "ALARM RADAROWY",
+                        severity: "crit",
+                        logMessage: "ZDARZENIE LOSOWE: Radar BMEWS w Pituffik wykrył niezapowiedziany start rakiety suborbitalnej z akwenu Morza Barentsa.",
+                        sliders: [45, 60, 70, 85, 75, 50],
+                        hostileMissiles: 1
+                    }
+                ];
+
+            let idx = Math.floor(Math.random() * pool.length);
+            if (pool.length > 1 && idx === lastRandomIncidentIndex) {
+                idx = (idx + 1) % pool.length;
+            }
+            lastRandomIncidentIndex = idx;
+
+            const ev = pool[idx];
+            const titleEl = document.getElementById("randomIncidentTitle");
+            if (titleEl) {
+                titleEl.innerHTML = `<span style="color:var(--cyan);">[${ev.category || 'INCYDENT'}]</span> ${ev.title}`;
+            }
+
+            logEvent(ev.logMessage || `INCYDENT LOSOWY: ${ev.title}`, ev.severity || "warn");
+
+            if (Array.isArray(ev.sliders)) {
+                setSlidersValues(ev.sliders);
+            }
+
+            if (ev.clearMissiles) {
+                clearAllMissiles();
+            }
+            if (ev.hostileMissiles && ev.hostileMissiles > 0) {
+                for (let i = 0; i < ev.hostileMissiles; i++) {
+                    setTimeout(() => spawnHostileStrikeArc(), i * 320);
+                }
+            }
+            if (ev.usMissiles && ev.usMissiles > 0) {
+                for (let i = 0; i < ev.usMissiles; i++) {
+                    setTimeout(() => spawnUSStrikeArc(), i * 320);
+                }
+            }
+            if (ev.triggerSkyking) {
+                generateEAM(true);
             }
         }
 
         /* =========================================================================
            5. PROCEDURY NUKLEARNE: MOLINK, EAM/SKYKING, THE BISCUIT, PAL, TWO-MAN RULE
            ========================================================================= */
-        const MOLINK_DILEMMAS = [
+        const FALLBACK_MOLINK_DILEMMAS = [
             {
+                category: "WCZESNE OSTRZEGANIE",
                 text: "[DEPESZA #01] WYKRYTO ANOMALIĘ TERMICZNĄ NA SYBERII. MOSKWA TWIERDZI, ŻE TO POŻAR GAZOCIĄGU, LECZ WIDMO IR PRZYPOMINA TEST SILNIKA RAKIETOWEGO.",
                 options: [
                     { label: "A) Przyjmij wyjaśnienie i wyślij satelitę optycznego (Deeskalacja)", delta: -12 },
                     { label: "B) Podnieś gotowość radarów BMEWS i żądaj inspekcji (Proporcjonalnie)", delta: +8 },
                     { label: "C) Ogłoś alarm dla dywizjonów Minuteman III (Eskalacja)", delta: +22 }
                 ]
-            },
-            {
-                text: "[DEPESZA #02] UTRACONO ŁĄCZNOŚĆ VLF Z OKRĘTEM PODWODNYM USS OHIO NA PACYFIKU W POBLIŻU STREFY PATROLOWEJ PRZECIWNIKA.",
-                options: [
-                    { label: "A) Przekaż komunikat o awarii radioboju przez MOLINK (Deeskalacja)", delta: -10 },
-                    { label: "B) Wyślij samoloty ZOP P-8 Poseidon w rejon ostatniego kontaktu", delta: +10 },
-                    { label: "C) Odblokuj procedurę bojową dla reszty floty SSBN (Eskalacja)", delta: +25 }
-                ]
-            },
-            {
-                text: "[DEPESZA #03] SYSTEM NORAD ZGŁASZA 12 NADLATUJĄCYCH OBIEKTÓW Z KIERUNKU BIEGUNA PÓŁNOCNEGO. RADARY ZAHORYZONTALNE NIE POTWIERDZAJĄ ECHA.",
-                options: [
-                    { label: "A) Zweryfikuj taśmy symulacyjne komputerów NORAD (Błąd systemu)", delta: -18 },
-                    { label: "B) Poderwij dyżurne myśliwce i samolot E-4B Nightwatch", delta: +12 },
-                    { label: "C) Przekaż prezydentowi teczkę Nuclear Football (Eskalacja)", delta: +28 }
-                ]
-            },
-            {
-                text: "[DEPESZA #04] WYKRYTO PODZIEMNY WSTRZĄS SEJSMICZNY 5.8 MAGNITUDO W REJONIE POLIGONU NOWA ZIEMIA / LOP NOR.",
-                options: [
-                    { label: "A) Przeprowadź analizę izotopową przez stacje CTBTO (Deeskalacja)", delta: -8 },
-                    { label: "B) Wezwij ambasadora i wprowadź sankcje technologiczne", delta: +9 },
-                    { label: "C) Rozmieść bombowce B-2 Spirit w bazach wysuniętych (Eskalacja)", delta: +20 }
-                ]
             }
         ];
 
         let currentDilemmaIndex = 0;
 
+        function getMolinkPool() {
+            return (window.MOLINK_DILEMMAS && window.MOLINK_DILEMMAS.length > 0)
+                ? window.MOLINK_DILEMMAS
+                : FALLBACK_MOLINK_DILEMMAS;
+        }
+
         function renderMolinkDilemma(idx) {
-            const d = MOLINK_DILEMMAS[idx];
+            const pool = getMolinkPool();
+            const safeIdx = ((idx % pool.length) + pool.length) % pool.length;
+            currentDilemmaIndex = safeIdx;
+            const d = pool[safeIdx];
+
+            document.getElementById("molinkCategoryTag").innerText = `KATEGORIA: ${d.category || "SZTAB KRYZYSOWY"}`;
+            document.getElementById("molinkCounterTag").innerText = `DEPESZA ${safeIdx + 1} / ${pool.length}`;
             document.getElementById("molinkText").innerText = d.text;
+
             const box = document.getElementById("molinkChoices");
             box.innerHTML = "";
             d.options.forEach((opt) => {
@@ -1831,19 +2007,55 @@
         }
 
         function triggerNewMolinkDilemma() {
-            currentDilemmaIndex = (currentDilemmaIndex + 1) % MOLINK_DILEMMAS.length;
+            const pool = getMolinkPool();
+            currentDilemmaIndex = (currentDilemmaIndex + 1) % pool.length;
             renderMolinkDilemma(currentDilemmaIndex);
-            logEvent("MOLINK: Odebrano nową pilną depeszę dalekopisową na Gorącej Linii.", "warn");
+            logEvent(`MOLINK: Odebrano depeszę dalekopisową #${currentDilemmaIndex + 1}/${pool.length} na Gorącej Linii.`, "warn");
+        }
+
+        function triggerRandomMolinkDilemma() {
+            const pool = getMolinkPool();
+            let nextIdx = Math.floor(Math.random() * pool.length);
+            if (pool.length > 1 && nextIdx === currentDilemmaIndex) {
+                nextIdx = (nextIdx + 1) % pool.length;
+            }
+            renderMolinkDilemma(nextIdx);
+            logEvent(`MOLINK: Odebrano pilną losową depeszę dalekopisową (#${nextIdx + 1}/${pool.length}).`, "warn");
         }
 
         function resolveMolinkChoice(opt) {
-            logEvent(`DECYZJA MOLINK: Wybrano wariant "${opt.label}" (zmiana napięcia: ${opt.delta > 0 ? '+' : ''}${opt.delta}%).`, opt.delta > 15 ? "crit" : "ok");
+            const deltaDesc = opt.delta > 0 ? `+${opt.delta}%` : `${opt.delta}%`;
+            logEvent(`DECYZJA MOLINK: Wybrano "${opt.label}" (wpływ na napięcie: ${deltaDesc}).`, opt.delta > 15 ? "crit" : "ok");
+
+            // Aktualizacja suwaków 1..5 oraz opcjonalnie 6 (wykrycie ICBM w locie)
             for (let i = 1; i <= 5; i++) {
                 const el = document.getElementById(`sl${i}`);
-                el.value = Math.max(0, Math.min(100, parseInt(el.value, 10) + opt.delta));
+                const specificDelta = (Array.isArray(opt.slidersDelta) && opt.slidersDelta[i - 1] !== undefined)
+                    ? opt.slidersDelta[i - 1]
+                    : opt.delta;
+                el.value = Math.max(0, Math.min(100, parseInt(el.value, 10) + specificDelta));
             }
+
+            const sl6 = document.getElementById("sl6");
+            if (opt.icbmDelta !== undefined) {
+                sl6.value = Math.max(0, Math.min(100, parseInt(sl6.value, 10) + opt.icbmDelta));
+            } else if (opt.delta < 0 && ballisticArcs.length === 0) {
+                sl6.value = Math.max(0, parseInt(sl6.value, 10) + opt.delta);
+            }
+
+            if (opt.spawnHostile && opt.spawnHostile > 0) {
+                for (let k = 0; k < opt.spawnHostile; k++) {
+                    setTimeout(() => spawnHostileStrikeArc(), k * 300);
+                }
+            }
+            if (opt.spawnUS && opt.spawnUS > 0) {
+                for (let k = 0; k < opt.spawnUS; k++) {
+                    setTimeout(() => spawnUSStrikeArc(), k * 300);
+                }
+            }
+
             onSlidersChanged();
-            setTimeout(triggerNewMolinkDilemma, 600);
+            setTimeout(triggerNewMolinkDilemma, 550);
         }
 
         // Generator EAM / SKYKING
@@ -1869,7 +2081,7 @@
 
             const box = document.getElementById("eamBox");
             if (isSkyking) {
-                const codeWord = ["GRANITE", "IRONCLAD", "THUNDER", "VANGUARD", "COBALT"][Math.floor(Math.random() * 5)];
+                const codeWord = ["GRANITE", "IRONCLAD", "THUNDER", "VANGUARD", "COBALT", "NIGHTWATCH", "TITAN"][Math.floor(Math.random() * 7)];
                 box.innerHTML = `<strong>[PRIORYTET FLASH // SKYKING]</strong><br>SKYKING, SKYKING, DO NOT ANSWER.<br>TIME ${new Date().getUTCMinutes()} ZULU • KOD: <strong>${codeWord}</strong><br>EAM: ${grouped}`;
                 currentEAMSpeechText = `Skyking, Skyking, do not answer. Codeword ${codeWord}. Authentication: ${spokenGroups}. Out.`;
                 logEvent(`EAM SKYKING: Wyemitowano rozkaz najwyższego priorytetu (${codeWord}).`, "crit");
@@ -1992,7 +2204,6 @@
             }
         }
 
-        // Otwiera widoczny Modal potwierdzenia wystrzelenia ICBM
         function executeSiopLaunch() {
             if (!(currentDefcon === 1 && isPalUnlocked && twoManSynced)) {
                 logEvent("ODMOWA AUTORYZACJI SIOP: Wymagany poziom DEFCON 1, odblokowana blokada PAL oraz zsynchronizowane 2 klucze!", "warn");
@@ -2163,6 +2374,7 @@
                 label: `${src.missilePrefix || 'ICBM'}-${Math.floor(10 + Math.random() * 89)}`
             });
             updateHudCounter();
+            syncIcbmAirborneRisk();
         }
 
         function spawnUSStrikeArc() {
@@ -2182,14 +2394,17 @@
             const dst = usTargets[Math.floor(Math.random() * usTargets.length)];
 
             spawnSpecificArc(src, dst, "hostile");
-            logEvent(`ALARM BMEWS: Wykryto wrogi pocisk ${src.missilePrefix} z ${src.name} lecący w stronę ${dst.name}!`, "crit");
+            logEvent(`ALARM BMEWS: Wykryto wrogi pocisk ${src.missilePrefix} w powietrzu (${src.name} ➔ ${dst.name})!`, "crit");
         }
 
         function clearAllMissiles() {
             ballisticArcs.length = 0;
             impactExplosions.length = 0;
             document.getElementById("siopActiveBanner").classList.remove("visible");
+            const sl6 = document.getElementById("sl6");
+            if (sl6) sl6.value = 0;
             updateHudCounter();
+            onSlidersChanged();
         }
 
         function updateHudCounter() {
@@ -2426,6 +2641,7 @@
                     logEvent(`DETONACJA GŁOWICY (${arc.label}): Potwierdzono trafienie w cel ${arc.dstName}!`, "crit");
                     ballisticArcs.splice(i, 1);
                     updateHudCounter();
+                    onSlidersChanged();
                 }
             }
 
@@ -2477,6 +2693,16 @@
             renderAudioBankList();
             verifyServerAudioFiles();
             applyDefconLevel(5, false);
+
+            const molinkCount = (window.MOLINK_DILEMMAS || []).length;
+            const incCount = (window.RANDOM_INCIDENTS || []).length;
+            const counterEl = document.getElementById("eventsDbCounter");
+            if (counterEl) {
+                counterEl.innerText = molinkCount > 0
+                    ? `Baza zewnętrzna: ${molinkCount} depesz MOLINK • ${incCount} incydentów losowych`
+                    : `Tryb awaryjny (brak pliku events_data.js)`;
+            }
+
             renderMolinkDilemma(0);
             generateEAM(false);
             drawTacticalCanvas();
