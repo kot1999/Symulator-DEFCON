@@ -826,7 +826,7 @@
             gap: 10px;
         }
 
-        /* Bank Audio MP3 + IndexedDB */
+        /* Bank Audio MP3 (Serwer) */
         .audio-stage-banner {
             background: var(--bg-input);
             border: 1px solid var(--border-bright);
@@ -876,7 +876,7 @@
             color: var(--text-secondary);
         }
 
-        .db-tag {
+        .srv-tag {
             font-size: 0.6rem;
             padding: 1px 5px;
             border-radius: 3px;
@@ -884,10 +884,16 @@
             color: #94a3b8;
         }
 
-        .db-tag.saved {
+        .srv-tag.ready {
             background: rgba(16, 185, 129, 0.2);
             color: #34d399;
             border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .srv-tag.missing {
+            background: rgba(239, 68, 68, 0.18);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.4);
         }
 
         /* Dziennik Zdarzeń ZULU */
@@ -991,11 +997,7 @@
                 <span class="val" id="controlModeLabel" style="color:#34d399;">AUTOMATYCZNY</span>
                 <button class="btn" id="toggleModeBtn" onclick="toggleControlMode()" style="padding:3px 7px; font-size:0.66rem;">ZMIEŃ</button>
             </div>
-            <button class="btn btn-cyan" onclick="document.getElementById('mp3Input').click()" id="topUploadBtn">
-                📁 WGRAJ MP3 (0/9)
-            </button>
             <button class="btn" id="muteToggleBtn" onclick="toggleMute()">🔊 AUDIO: WŁ.</button>
-            <input type="file" id="mp3Input" multiple accept="audio/mp3,audio/mpeg,audio/*" style="display:none" onchange="handleFilesSelected(event)">
         </div>
     </header>
 
@@ -1273,12 +1275,12 @@
             </div>
         </section>
 
-        <!-- KOLUMNA PRAWA: BANK AUDIO MP3 (INDEXEDDB) + DZIENNIK ZDARZEŃ ZULU -->
+        <!-- KOLUMNA PRAWA: BANK AUDIO MP3 (SERWER) + DZIENNIK ZDARZEŃ ZULU -->
         <section class="col-right">
             <div class="panel">
                 <div class="panel-header">
-                    <span class="panel-title">Bank Audio DEFCON (IndexedDB)</span>
-                    <span id="dbStatusBadge" style="font-size:0.68rem; color:#34d399;">PAMIĘĆ DB: 0/9 PLIKÓW</span>
+                    <span class="panel-title">Bank Audio DEFCON (Główny Folder)</span>
+                    <span id="serverAudioBadge" style="font-size:0.68rem; color:#34d399;">PLIKI SERWERA: 0/9</span>
                 </div>
 
                 <div class="audio-stage-banner">
@@ -1295,19 +1297,10 @@
                     <button class="btn btn-red" onclick="stopAllAudio()" style="padding:4px 8px; font-size:0.66rem;">⏹ STOP</button>
                 </div>
 
-                <div style="display:flex; gap:6px; margin-bottom:10px;">
-                    <button class="btn btn-cyan" onclick="document.getElementById('mp3Input').click()" style="flex:1; justify-content:center; font-size:0.7rem;">
-                        📥 WYBIERZ 9 PLIKÓW MP3
-                    </button>
-                    <button class="btn" onclick="clearIndexedDBAudio()" style="font-size:0.68rem; color:#fca5a5;">
-                        🗑️ WYCZYŚĆ PAMIĘĆ DB
-                    </button>
-                </div>
-
                 <div id="audioBankList"></div>
 
                 <p style="font-size:0.64rem; color:var(--text-muted); margin-top:8px; line-height:1.35;">
-                    💡 Po zmianie poziomu najpierw wybrzmiewa plik <code>defcon X alert.mp3</code>, a bezpośrednio po jego zakończeniu <code>defcon X announcment.mp3</code> (poziom 5 posiada wyłącznie alarm). Raz wgrane pliki zostają trwale zapamiętane w przeglądarce (`DEFCON_AudioStorage`).
+                    💡 System automatycznie wczytuje pliki z głównego katalogu serwera (<code>./defcon X alert.mp3</code> oraz <code>./defcon X announcment.mp3</code>). Po zmianie poziomu najpierw wybrzmiewa alarm, a bezpośrednio po nim ogłoszenie głosowe.
                 </p>
             </div>
 
@@ -1405,180 +1398,81 @@
         let masterVolume = 0.85;
 
         /* =========================================================================
-           3. SYSTEM AUDIO MP3 + TRWAŁA PAMIĘĆ INDEXEDDB (DEFCON_AudioStorage)
+           3. SYSTEM AUDIO MP3 — WCZYTYWANIE BEZPOŚREDNIO Z GŁÓWNEGO FOLDERU SERWERA
            ========================================================================= */
-        const DB_NAME = "DEFCON_AudioStorage";
-        const STORE_NAME = "audio_files";
-        let idbInstance = null;
-
-        const EXPECTED_FILES = {
-            "defcon 1 alert.mp3": { level: 1, type: "alert" },
-            "defcon 1 announcment.mp3": { level: 1, type: "announcment" },
-            "defcon 2 alert.mp3": { level: 2, type: "alert" },
-            "defcon 2 announcment.mp3": { level: 2, type: "announcment" },
-            "defcon 3 alert.mp3": { level: 3, type: "alert" },
-            "defcon 3 announcment.mp3": { level: 3, type: "announcment" },
-            "defcon 4 alert.mp3": { level: 4, type: "alert" },
-            "defcon 4 announcment.mp3": { level: 4, type: "announcment" },
-            "defcon 5 alert.mp3": { level: 5, type: "alert" }
-        };
-
         const audioBank = {
-            1: { alert: "./defcon 1 alert.mp3", announcment: "./defcon 1 announcment.mp3", alertLoaded: false, annLoaded: false },
-            2: { alert: "./defcon 2 alert.mp3", announcment: "./defcon 2 announcment.mp3", alertLoaded: false, annLoaded: false },
-            3: { alert: "./defcon 3 alert.mp3", announcment: "./defcon 3 announcment.mp3", alertLoaded: false, annLoaded: false },
-            4: { alert: "./defcon 4 alert.mp3", announcment: "./defcon 4 announcment.mp3", alertLoaded: false, annLoaded: false },
-            5: { alert: "./defcon 5 alert.mp3", announcment: null, alertLoaded: false, annLoaded: false }
+            1: { alert: "./defcon 1 alert.mp3", announcment: "./defcon 1 announcment.mp3", alertStatus: "checking", annStatus: "checking" },
+            2: { alert: "./defcon 2 alert.mp3", announcment: "./defcon 2 announcment.mp3", alertStatus: "checking", annStatus: "checking" },
+            3: { alert: "./defcon 3 alert.mp3", announcment: "./defcon 3 announcment.mp3", alertStatus: "checking", annStatus: "checking" },
+            4: { alert: "./defcon 4 alert.mp3", announcment: "./defcon 4 announcment.mp3", alertStatus: "checking", annStatus: "checking" },
+            5: { alert: "./defcon 5 alert.mp3", announcment: null, alertStatus: "checking", annStatus: null }
         };
 
         let activeAudioObj = null;
         let audioSequenceSession = 0;
 
-        function initIndexedDB() {
-            const req = indexedDB.open(DB_NAME, 1);
-            req.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME);
-                }
-            };
-            req.onsuccess = (e) => {
-                idbInstance = e.target.result;
-                restoreAudioFromIndexedDB();
-            };
-            req.onerror = () => {
-                logEvent("Ostrzeżenie: Nie udało się otworzyć bazy IndexedDB dla plików audio.", "warn");
-            };
-        }
-
-        function saveBlobToIndexedDB(filename, blob) {
-            if (!idbInstance) return;
-            const tx = idbInstance.transaction([STORE_NAME], "readwrite");
-            tx.objectStore(STORE_NAME).put(blob, filename);
-        }
-
-        function restoreAudioFromIndexedDB() {
-            if (!idbInstance) return;
-            const tx = idbInstance.transaction([STORE_NAME], "readonly");
-            const store = tx.objectStore(STORE_NAME);
-            const keysReq = store.getAllKeys();
-
-            keysReq.onsuccess = () => {
-                const keys = keysReq.result || [];
-                if (keys.length === 0) {
-                    renderAudioBankList();
-                    return;
-                }
-                let processed = 0;
-                keys.forEach((filename) => {
-                    const getReq = store.get(filename);
-                    getReq.onsuccess = () => {
-                        const blob = getReq.result;
-                        if (blob && EXPECTED_FILES[filename]) {
-                            const info = EXPECTED_FILES[filename];
-                            const objUrl = URL.createObjectURL(blob);
-                            if (info.type === "alert") {
-                                audioBank[info.level].alert = objUrl;
-                                audioBank[info.level].alertLoaded = true;
-                            } else {
-                                audioBank[info.level].announcment = objUrl;
-                                audioBank[info.level].annLoaded = true;
-                            }
-                        }
-                        processed++;
-                        if (processed === keys.length) {
-                            renderAudioBankList();
-                            logEvent(`Przywrócono ${countLoadedMP3()}/9 plików MP3 z trwałej bazy IndexedDB.`, "ok");
-                        }
-                    };
-                });
-            };
-        }
-
-        function clearIndexedDBAudio() {
-            if (!idbInstance) return;
-            const tx = idbInstance.transaction([STORE_NAME], "readwrite");
-            tx.objectStore(STORE_NAME).clear();
-            tx.oncomplete = () => {
-                for (let lvl = 1; lvl <= 5; lvl++) {
-                    audioBank[lvl].alert = `./defcon ${lvl} alert.mp3`;
-                    audioBank[lvl].alertLoaded = false;
-                    if (lvl < 5) {
-                        audioBank[lvl].announcment = `./defcon ${lvl} announcment.mp3`;
-                        audioBank[lvl].annLoaded = false;
-                    }
-                }
-                renderAudioBankList();
-                logEvent("Wyczyszczono zapamiętane pliki MP3 z bazy przeglądarki IndexedDB.", "warn");
-            };
-        }
-
-        function countLoadedMP3() {
+        function countReadyServerFiles() {
             let count = 0;
             for (let lvl = 1; lvl <= 5; lvl++) {
-                if (audioBank[lvl].alertLoaded) count++;
-                if (lvl < 5 && audioBank[lvl].annLoaded) count++;
+                if (audioBank[lvl].alertStatus === "ready") count++;
+                if (lvl < 5 && audioBank[lvl].annStatus === "ready") count++;
             }
             return count;
         }
 
-        function normalizeFileName(rawName) {
-            const clean = rawName.toLowerCase().trim().replace(/_/g, " ");
+        function verifyServerAudioFiles() {
             for (let lvl = 1; lvl <= 5; lvl++) {
-                if (clean.includes(`defcon ${lvl}`) && clean.includes("alert")) {
-                    return `defcon ${lvl} alert.mp3`;
-                }
-                if (lvl < 5 && clean.includes(`defcon ${lvl}`) && (clean.includes("announcment") || clean.includes("announcement"))) {
-                    return `defcon ${lvl} announcment.mp3`;
+                // Weryfikacja pliku alarmu (defcon X alert.mp3)
+                const probeAlert = new Audio();
+                probeAlert.preload = "metadata";
+                probeAlert.onloadedmetadata = () => {
+                    audioBank[lvl].alertStatus = "ready";
+                    renderAudioBankList();
+                };
+                probeAlert.onerror = () => {
+                    audioBank[lvl].alertStatus = "missing";
+                    renderAudioBankList();
+                };
+                probeAlert.src = audioBank[lvl].alert;
+
+                // Weryfikacja pliku ogłoszenia (defcon 1..4 announcment.mp3)
+                if (lvl < 5 && audioBank[lvl].announcment) {
+                    const probeAnn = new Audio();
+                    probeAnn.preload = "metadata";
+                    probeAnn.onloadedmetadata = () => {
+                        audioBank[lvl].annStatus = "ready";
+                        renderAudioBankList();
+                    };
+                    probeAnn.onerror = () => {
+                        audioBank[lvl].annStatus = "missing";
+                        renderAudioBankList();
+                    };
+                    probeAnn.src = audioBank[lvl].announcment;
                 }
             }
-            return null;
         }
 
-        function handleFilesSelected(event) {
-            const files = Array.from(event.target.files || []);
-            let matched = 0;
-
-            files.forEach(file => {
-                const canonical = normalizeFileName(file.name);
-                if (canonical && EXPECTED_FILES[canonical]) {
-                    const info = EXPECTED_FILES[canonical];
-                    const objUrl = URL.createObjectURL(file);
-                    if (info.type === "alert") {
-                        audioBank[info.level].alert = objUrl;
-                        audioBank[info.level].alertLoaded = true;
-                    } else {
-                        audioBank[info.level].announcment = objUrl;
-                        audioBank[info.level].annLoaded = true;
-                    }
-                    saveBlobToIndexedDB(canonical, file);
-                    matched++;
-                }
-            });
-
-            renderAudioBankList();
-            logEvent(`Załadowano i zapisano w IndexedDB: ${matched} plików audio (łącznie ${countLoadedMP3()}/9).`, "ok");
+        function formatStatusTag(status) {
+            if (status === "ready") return `<span class="srv-tag ready">[DOSTĘPNY]</span>`;
+            if (status === "missing") return `<span class="srv-tag missing">[BRAK PLIKU]</span>`;
+            return `<span class="srv-tag">[SPRAWDZANIE...]</span>`;
         }
 
         function renderAudioBankList() {
             const container = document.getElementById("audioBankList");
             container.innerHTML = "";
-            const totalLoaded = countLoadedMP3();
+            const totalReady = countReadyServerFiles();
 
-            document.getElementById("dbStatusBadge").innerText = `PAMIĘĆ DB: ${totalLoaded}/9 PLIKÓW`;
-            document.getElementById("topUploadBtn").innerText = `📁 WGRAJ MP3 (${totalLoaded}/9)`;
+            document.getElementById("serverAudioBadge").innerText = `PLIKI SERWERA: ${totalReady}/9`;
 
             for (let lvl = 1; lvl <= 5; lvl++) {
                 const item = audioBank[lvl];
                 const row = document.createElement("div");
                 row.className = "audio-level-row";
 
-                const alertTag = item.alertLoaded
-                    ? `<span class="db-tag saved">[ZAPAMIĘTANY DB]</span>`
-                    : `<span class="db-tag">[ŚCIEŻKA LOKALNA]</span>`;
-
+                const alertTag = formatStatusTag(item.alertStatus);
                 const annHtml = lvl < 5
-                    ? `<div class="file-badge">🗣️ <code>defcon ${lvl} announcment.mp3</code> ${item.annLoaded ? '<span class="db-tag saved">[ZAPAMIĘTANY DB]</span>' : '<span class="db-tag">[ŚCIEŻKA LOKALNA]</span>'}</div>`
+                    ? `<div class="file-badge">🗣️ <code>defcon ${lvl} announcment.mp3</code> ${formatStatusTag(item.annStatus)}</div>`
                     : `<div class="file-badge" style="color:var(--text-muted);">ℹ️ Poziom 5 nie posiada słownego ogłoszenia</div>`;
 
                 row.innerHTML = `
@@ -1716,19 +1610,19 @@
 
                 annAudio.onerror = () => {
                     if (session !== audioSequenceSession) return;
-                    seqText.innerText = `Brak pliku 'defcon ${level} announcment.mp3' — użyj przycisku WGRAJ MP3.`;
-                    stagePill.innerText = "BRAK MP3";
+                    seqText.innerText = `Brak pliku 'defcon ${level} announcment.mp3' w głównym folderze serwera.`;
+                    stagePill.innerText = "BRAK PLIKU";
                 };
 
                 annAudio.play().catch(() => {
-                    seqText.innerText = `Wymagana interakcja lub wgranie pliku 'defcon ${level} announcment.mp3'.`;
+                    seqText.innerText = `Odtwarzanie ogłoszenia zablokowane przez przeglądarkę lub brak pliku.`;
                 });
             };
 
             alertAudio.onended = proceedToAnnouncement;
             alertAudio.onerror = () => {
                 if (session !== audioSequenceSession) return;
-                seqText.innerText = `Synteza awaryjna (wgraj 'defcon ${level} alert.mp3' dla oryginalnego dźwięku)...`;
+                seqText.innerText = `Synteza awaryjna (brak 'defcon ${level} alert.mp3' w głównym folderze)...`;
                 playFallbackSynthAlert(level, proceedToAnnouncement);
             };
 
@@ -2116,7 +2010,6 @@
         function confirmSiopLaunchExecution() {
             closeSiopModal();
 
-            // Pokaż wyraźny czerwono-złoty baner nad mapą i przewiń ekran do mapy taktycznej
             const banner = document.getElementById("siopActiveBanner");
             banner.classList.add("visible");
             document.getElementById("tacticalMapPanel").scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2124,7 +2017,6 @@
             playLaunchKlaxonSynth();
             logEvent("☢️ SIOP LAUNCH POTWIERDZONY: Rozkaz startu pocisków Minuteman III (USA) i Trident II D5 (SSBN) wysłany! Pociski w drodze do celów w Rosji/Euroazji!", "crit");
 
-            // Wystrzel pełną salwę 8 amerykańskich rakiet z silosów USA i okrętów SSBN w stronę celów wroga
             const usBases = STRATEGIC_BASES.filter(b => b.type === "allied" && b.canLaunch);
             const ruTargets = STRATEGIC_BASES.filter(b => b.type === "hostile");
 
@@ -2151,7 +2043,6 @@
         let logicalWidth = 820;
         let logicalHeight = 400;
 
-        // Automatyczne dopasowanie rozdzielczości Canvas 1:1 (brak ściśnięcia radaru!)
         function resizeCanvasToContainer() {
             const wrapper = document.getElementById("mapWrapper");
             if (!wrapper) return;
@@ -2167,8 +2058,6 @@
 
         window.addEventListener("resize", resizeCanvasToContainer);
 
-        // Bazy strategiczne USA/NATO (Siły Własne) oraz cele przeciwnika (Rosja/Euroazja)
-        // Współrzędne znormalizowane [x: 0..1 (długość geogr.), y: 0..1 (szerokość geogr.)]
         const STRATEGIC_BASES = [
             // USA & NATO (Siły Własne)
             { name: "NORAD / FE Warren ICBM", x: 0.205, y: 0.345, type: "allied", canLaunch: true, missilePrefix: "MINUTEMAN-III" },
@@ -2190,9 +2079,8 @@
             { name: "Wiliuczyńsk SSBN", x: 0.892, y: 0.252, type: "hostile", canLaunch: true, missilePrefix: "BUŁAWA-SLBM" }
         ];
 
-        // Dokładne obrysy kontynentów świata [x: 0..1, y: 0..1] w odwzorowaniu walcowym
         const WORLD_POLYGONS = [
-            // Ameryka Północna (Alaska, Kanada, USA, Meksyk, Ameryka Środkowa)
+            // Ameryka Północna
             [
                 [0.04,0.16],[0.08,0.13],[0.13,0.13],[0.18,0.15],[0.23,0.14],[0.27,0.17],
                 [0.25,0.22],[0.31,0.23],[0.33,0.27],[0.29,0.31],[0.27,0.36],[0.25,0.41],
@@ -2213,7 +2101,7 @@
             [
                 [0.468,0.22],[0.488,0.215],[0.494,0.255],[0.472,0.262]
             ],
-            // Euroazja (Europa Zachodnia, Skandynawia, Morze Śródziemne, Rosja, Bliski Wschód, Indie, Chiny, Kamczatka)
+            // Euroazja
             [
                 [0.46,0.33],[0.46,0.29],[0.49,0.27],[0.52,0.25],[0.51,0.20],[0.53,0.14],
                 [0.57,0.12],[0.60,0.16],[0.66,0.13],[0.74,0.11],[0.83,0.12],[0.92,0.15],
@@ -2269,16 +2157,14 @@
                 x2: dst.x, y2: dst.y,
                 srcName: src.name,
                 dstName: dst.name,
-                side: side, // 'us' | 'hostile'
+                side: side,
                 progress: 0,
-                // Wolniejszy, dobrze widoczny czas lotu (~15 sekund)
                 speed: 0.0011 + Math.random() * 0.0005,
                 label: `${src.missilePrefix || 'ICBM'}-${Math.floor(10 + Math.random() * 89)}`
             });
             updateHudCounter();
         }
 
-        // Wystrzelenie pocisku USA ➔ Cele w Rosji
         function spawnUSStrikeArc() {
             const usLaunchers = STRATEGIC_BASES.filter(b => b.type === "allied" && b.canLaunch);
             const ruTargets = STRATEGIC_BASES.filter(b => b.type === "hostile");
@@ -2289,7 +2175,6 @@
             logEvent(`STRATCOM LAUNCH: Wystrzelono ${src.missilePrefix} z bazy ${src.name} ➔ cel: ${dst.name}.`, "warn");
         }
 
-        // Symulacja ataku wroga (Rosja ➔ USA)
         function spawnHostileStrikeArc() {
             const hostileLaunchers = STRATEGIC_BASES.filter(b => b.type === "hostile");
             const usTargets = STRATEGIC_BASES.filter(b => b.type === "allied");
@@ -2313,7 +2198,6 @@
             document.getElementById("hudRight").innerText = `GŁOWICE W LOCIE: ${ballisticArcs.length} (USA: ${usCount} | WRÓG: ${hostCount})`;
         }
 
-        // Konwersja współrzędnych mapy [x,y] na współrzędne polarne wokół Bieguna Północnego (dla Radaru BMEWS)
         function mapCoordToPolar(nx, ny, cx, cy, maxR) {
             const lon = (nx - 0.5) * Math.PI * 2 - Math.PI / 2;
             const dist = Math.min(0.95, Math.max(0.06, ny * 1.18)) * maxR;
@@ -2329,7 +2213,6 @@
             ctx.clearRect(0, 0, w, h);
 
             if (canvasMode === "map") {
-                // 1. Siatka kartograficzna (południki i równoleżniki)
                 ctx.strokeStyle = "rgba(30, 58, 95, 0.28)";
                 ctx.lineWidth = 1;
                 for (let i = 1; i < 12; i++) {
@@ -2341,16 +2224,14 @@
                     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
                 }
 
-                // Równik i koło podbiegunowe
                 ctx.strokeStyle = "rgba(56, 189, 248, 0.22)";
                 ctx.setLineDash([5, 5]);
                 ctx.beginPath();
-                ctx.moveTo(0, h * 0.55); ctx.lineTo(w, h * 0.55); // Równik
-                ctx.moveTo(0, h * 0.16); ctx.lineTo(w, h * 0.16); // Koło podbiegunowe północne
+                ctx.moveTo(0, h * 0.55); ctx.lineTo(w, h * 0.55);
+                ctx.moveTo(0, h * 0.16); ctx.lineTo(w, h * 0.16);
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                // 2. Szczegółowe kontynenty świata
                 ctx.fillStyle = "rgba(14, 116, 144, 0.22)";
                 ctx.strokeStyle = "rgba(6, 182, 212, 0.65)";
                 ctx.lineWidth = 1.3;
@@ -2365,7 +2246,6 @@
                     ctx.stroke();
                 });
 
-                // 3. Orbita satelitów wczesnego ostrzegania SBIRS
                 ctx.strokeStyle = "rgba(234, 179, 8, 0.28)";
                 ctx.setLineDash([4, 4]);
                 ctx.beginPath();
@@ -2377,7 +2257,6 @@
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                // 4. Bazy strategiczne USA/NATO oraz przeciwnika
                 STRATEGIC_BASES.forEach(b => {
                     const bx = b.x * w;
                     const by = b.y * h;
@@ -2396,17 +2275,14 @@
                     ctx.fillText(b.name, bx + 8, by + 3);
                 });
 
-                // 5. Trajektorie balistyczne ICBM / SLBM
                 ballisticArcs.forEach((arc) => {
                     const sx = arc.x1 * w, sy = arc.y1 * h;
                     const ex = arc.x2 * w, ey = arc.y2 * h;
                     const cx = (sx + ex) / 2;
-                    // Łuk balistyczny ponad Arktyką
                     const cy = Math.min(sy, ey) - h * 0.28;
 
                     const isUS = arc.side === "us";
 
-                    // Planowana ścieżka (przerywana)
                     ctx.strokeStyle = isUS ? "rgba(56, 189, 248, 0.25)" : "rgba(239, 68, 68, 0.25)";
                     ctx.lineWidth = 1;
                     ctx.setLineDash([3, 3]);
@@ -2416,7 +2292,6 @@
                     ctx.stroke();
                     ctx.setLineDash([]);
 
-                    // Przebyty ślad rakiety (ciągły)
                     ctx.strokeStyle = isUS ? "#38bdf8" : "#ef4444";
                     ctx.lineWidth = 2.2;
                     ctx.beginPath();
@@ -2428,7 +2303,6 @@
                     }
                     ctx.stroke();
 
-                    // Głowica MIRV w locie
                     const t = arc.progress;
                     const hx = (1 - t) * (1 - t) * sx + 2 * (1 - t) * t * cx + t * t * ex;
                     const hy = (1 - t) * (1 - t) * sy + 2 * (1 - t) * t * cy + t * t * ey;
@@ -2444,7 +2318,6 @@
                     ctx.fillText(`${arc.label} [T-${remainSec}s]`, hx + 7, hy - 6);
                 });
 
-                // 6. Znaczniki uderzeń / eksplozji w celach
                 for (let i = impactExplosions.length - 1; i >= 0; i--) {
                     const imp = impactExplosions[i];
                     const ix = imp.x * w;
@@ -2462,12 +2335,10 @@
                 }
 
             } else {
-                // TRYB RADARU POLARNEGO BMEWS (Idealny okrąg 1:1 wokół Bieguna Północnego)
                 const cx = w / 2;
                 const cy = h / 2;
                 const maxR = Math.min(w, h) * 0.43;
 
-                // Podkład kontynentów w projekcji polarnej
                 ctx.fillStyle = "rgba(16, 185, 129, 0.12)";
                 ctx.strokeStyle = "rgba(16, 185, 129, 0.35)";
                 ctx.lineWidth = 1;
@@ -2483,7 +2354,6 @@
                     ctx.stroke();
                 });
 
-                // Pierścienie odległościowe radaru
                 ctx.strokeStyle = "rgba(16, 185, 129, 0.55)";
                 ctx.lineWidth = 1.2;
                 [0.25, 0.5, 0.75, 1].forEach(r => {
@@ -2492,7 +2362,6 @@
                     ctx.stroke();
                 });
 
-                // Osie azymutu (co 45 stopni)
                 for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
                     ctx.beginPath();
                     ctx.moveTo(cx, cy);
@@ -2500,7 +2369,6 @@
                     ctx.stroke();
                 }
 
-                // Etykiety sektorów polarnych
                 ctx.fillStyle = "#34d399";
                 ctx.font = "10px monospace";
                 ctx.fillText("0° (EUROPA / NATO)", cx - 48, cy - maxR - 6);
@@ -2508,7 +2376,6 @@
                 ctx.fillText("90°E (ROSJA / SYBERIA)", cx + maxR + 8, cy + 4);
                 ctx.fillText("90°W (USA / KANADA)", cx - maxR - 118, cy + 4);
 
-                // Bazy na radarze polarnym
                 STRATEGIC_BASES.forEach(b => {
                     const p = mapCoordToPolar(b.x, b.y, cx, cy, maxR);
                     ctx.fillStyle = b.type === "allied" ? "#38bdf8" : "#ef4444";
@@ -2517,7 +2384,6 @@
                     ctx.fill();
                 });
 
-                // Wiązka skanująca BMEWS
                 const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, maxR);
                 grad.addColorStop(0, "rgba(16, 185, 129, 0.45)");
                 grad.addColorStop(1, "rgba(16, 185, 129, 0.05)");
@@ -2529,7 +2395,6 @@
                 ctx.closePath();
                 ctx.fill();
 
-                // Ślady i głowice pocisków w rzucie polarnym (przez Biegun Północny!)
                 ballisticArcs.forEach((arc) => {
                     const p1 = mapCoordToPolar(arc.x1, arc.y1, cx, cy, maxR);
                     const p2 = mapCoordToPolar(arc.x2, arc.y2, cx, cy, maxR);
@@ -2553,7 +2418,6 @@
                 });
             }
 
-            // Aktualizacja postępu rakiet i rejestrowanie trafień
             for (let i = ballisticArcs.length - 1; i >= 0; i--) {
                 const arc = ballisticArcs[i];
                 arc.progress += arc.speed;
@@ -2610,8 +2474,8 @@
             if ('ResizeObserver' in window) {
                 new ResizeObserver(resizeCanvasToContainer).observe(document.getElementById("mapWrapper"));
             }
-            initIndexedDB();
             renderAudioBankList();
+            verifyServerAudioFiles();
             applyDefconLevel(5, false);
             renderMolinkDilemma(0);
             generateEAM(false);
